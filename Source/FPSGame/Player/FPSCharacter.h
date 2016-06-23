@@ -256,6 +256,7 @@ protected:
 	/************************************************************************/
 public:
 	/** get max health */
+	UFUNCTION(BlueprintCallable, Category = Player)
 	int32 GetMaxHealth() const;
 
 	/** check if pawn is still alive */

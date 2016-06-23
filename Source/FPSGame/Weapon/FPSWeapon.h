@@ -441,9 +441,11 @@ public:
 
 
 	/** get current ammo amount (total) */
+	UFUNCTION(BlueprintCallable, Category = Weapon)
 	int32 GetCurrentAmmo() const;
 
 	/** get current ammo amount (clip) */
+	UFUNCTION(BlueprintCallable, Category = Weapon)
 	int32 GetCurrentAmmoInClip() const;
 
 	/** get clip size */
