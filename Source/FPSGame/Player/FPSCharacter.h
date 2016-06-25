@@ -7,6 +7,7 @@
 #include "FPSCharacter.generated.h"
 
 class AFPSWeapon;
+class AUsableActor;
 
 UCLASS(Abstract)
 class AFPSCharacter : public ACharacter
@@ -173,6 +174,10 @@ public:
 	/** player released run action */
 	void OnStopRunning();
 
+	void OnUse();
+
+	void OnDrop();
+
 	/************************************************************************/
 	/* Respawn                                                              */
 	/************************************************************************/
@@ -294,46 +299,25 @@ public:
 	*/
 	class AFPSWeapon* FindWeapon(TSubclassOf<class AFPSWeapon> WeaponClass);
 
+	void AddWeapon(AFPSWeapon* Weapon);
+
+	void RemoveWeapon(AFPSWeapon* Weapon);
+
+	void EquipWeapon(AFPSWeapon* Weapon);
+
+	void UnEquipWeapon(AFPSWeapon* Weapon);
+
 protected:
 
-	/** [server] spawns default inventory */
 	void SpawnDefaultInventory();
 
-	/** [server] remove all weapons from inventory and destroy them */
 	void DestroyInventory();
 
-	/**
-	* [server] add weapon to inventory
-	*
-	* @param Weapon	Weapon to add.
-	*/
-	void AddWeapon(class AFPSWeapon* Weapon);
-
-	/**
-	* [server] remove weapon from inventory
-	*
-	* @param Weapon	Weapon to remove.
-	*/
-	void RemoveWeapon(class AFPSWeapon* Weapon);
-
-	/**
-	* [server + local] equips weapon from inventory
-	*
-	* @param Weapon	Weapon to equip
-	*/
-	void EquipWeapon(class AFPSWeapon* Weapon);
-
-	/** updates current weapon */
-	void SetCurrentWeapon(class AFPSWeapon* NewWeapon, class AFPSWeapon* LastWeapon = NULL);
+	void SetCurrentWeapon(AFPSWeapon* NewWeapon, AFPSWeapon* LastWeapon = NULL);
 
 	/** current weapon rep handler */
 	UFUNCTION()
 	void OnRep_CurrentWeapon(class AFPSWeapon* LastWeapon);
-
-	/** equip weapon */
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerEquipWeapon(class AFPSWeapon* NewWeapon);
-
 
 	/** default inventory list */
 	UPROPERTY(EditDefaultsOnly, Category = Inventory)
@@ -347,10 +331,11 @@ protected:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_CurrentWeapon)
 	class AFPSWeapon* CurrentWeapon;
 
+	float DropWeaponMaxDistance = 100;
+
 	/************************************************************************/
 	/* Move And Rotation                                                          */
 	/************************************************************************/
-
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	float BaseTurnRate;
@@ -473,4 +458,18 @@ public:
 
 	/** stop playing all montages */
 	void StopAllAnimMontages();
+
+	/************************************************************************/
+	/* Interactive                                                    */
+	/************************************************************************/
+public:
+
+	bool bHasNewFocus = true;
+	float MaxUseDistance = 500;
+
+	AUsableActor* FocusedUsableActor;
+	AUsableActor* GetUsableActorInView();
+
+	void TickViewUsable();
+
 };

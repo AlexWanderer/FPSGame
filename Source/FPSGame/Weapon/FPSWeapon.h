@@ -75,7 +75,9 @@ struct FWeaponData
 		NoAnimReloadDuration = 1.0f;
 	}
 };
-//class AFPSCharacter;
+
+class AItemWeapon;
+
 UCLASS()
 class AFPSWeapon : public AActor
 {
@@ -92,6 +94,9 @@ public:
 	/** weapon data */
 	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FWeaponData WeaponConfig;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<AItemWeapon> ItemClass;
 
 	/************************************************************************/
 	/* Calculate                                                                    */

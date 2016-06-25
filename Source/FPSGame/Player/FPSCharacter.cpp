@@ -9,6 +9,8 @@
 #include "Online/FPSGameMode.h"
 #include "UI/GameHUD.h"
 #include "Weapon/FPSDamageType.h"
+#include "Gameplay/UsableActor.h"
+#include "Item/ItemWeapon.h"
 
 AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UFPSCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -94,6 +96,8 @@ void AFPSCharacter::Tick( float DeltaTime )
 			LowHealthWarningPlayer->SetVolumeMultiplier(MinVolume + (1.0f - MinVolume) * VolumeMultiplier);
 		}
 	}
+
+	TickViewUsable();
 }
 
 // Called to bind functionality to input
@@ -125,6 +129,9 @@ void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputCompon
 	InputComponent->BindAction("Run", IE_Pressed, this, &AFPSCharacter::OnStartRunning);
 	InputComponent->BindAction("RunToggle", IE_Pressed, this, &AFPSCharacter::OnStartRunningToggle);
 	InputComponent->BindAction("Run", IE_Released, this, &AFPSCharacter::OnStopRunning);
+
+	InputComponent->BindAction("Use", IE_Pressed, this, &AFPSCharacter::OnUse);
+	InputComponent->BindAction("Drop", IE_Pressed, this, &AFPSCharacter::OnDrop);
 }
 
 void AFPSCharacter::MoveForward(float Val)
@@ -298,15 +305,79 @@ void AFPSCharacter::OnStopRunning()
 	SetRunning(false, false);
 }
 
+void AFPSCharacter::OnUse()
+{
+	AUsableActor* TheUsableActor = GetUsableActorInView();
+	if (TheUsableActor)
+	{
+		TheUsableActor->OnUsed(this);
+	}
+}
+
+void AFPSCharacter::OnDrop()
+{
+	if (CurrentWeapon)
+	{
+		if (Controller == nullptr)
+		{
+			return;
+		}
+		
+		//丢之前 检测一下丢的方向会不会阻挡，如果会，那么丢的近一些
+		FVector CamLoc;
+		FRotator CamRot;
+		Controller->GetPlayerViewPoint(CamLoc, CamRot);
+
+		FVector SpawnLoc;
+		FRotator SpawnRot = CamRot;
+		const FVector Direction = CamRot.Vector();
+		const FVector TraceStart = GetActorLocation();
+		const FVector TraceEnd = GetActorLocation() + (Direction * DropWeaponMaxDistance);
+
+		FCollisionQueryParams TraceParam;
+		TraceParam.bTraceComplex = false;
+		TraceParam.bReturnPhysicalMaterial = false;
+		TraceParam.AddIgnoredActor(this);
+		FHitResult Hit;
+		GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_WorldDynamic, TraceParam);
+
+		if (Hit.bBlockingHit)
+		{
+			SpawnLoc = Hit.ImpactPoint + (Hit.ImpactNormal * 20);
+		}
+		else
+		{
+			SpawnLoc = TraceEnd;
+		}
+
+		FActorSpawnParameters SpawnParam;
+		SpawnParam.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AItemWeapon* NewWeaponItem = GetWorld()->SpawnActor<AItemWeapon>(CurrentWeapon->ItemClass, SpawnLoc, FRotator::ZeroRotator, SpawnParam);
+
+		if (NewWeaponItem)
+		{
+			USkeletalMeshComponent* MeshComp = NewWeaponItem->GetMeshComponent();
+			if (MeshComp)
+			{
+				MeshComp->SetSimulatePhysics(true);
+				MeshComp->AddTorque(FVector(1, 1, 1) * 400000);
+				MeshComp->AddForce(Direction * 400000);
+			}
+		}
+
+		RemoveWeapon(CurrentWeapon);
+		UnEquipWeapon(CurrentWeapon);
+	}
+}
+
 void AFPSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (Role == ROLE_Authority)
-	{
-		Health = GetMaxHealth();
-		SpawnDefaultInventory();
-	}
+	Health = GetMaxHealth();
+	SpawnDefaultInventory();
+
 
 	// set initial mesh visibility (3rd person view)
 	UpdatePawnMeshes();
@@ -317,19 +388,16 @@ void AFPSCharacter::PostInitializeComponents()
 		MeshMIDs.Add(GetMesh()->CreateAndSetMaterialInstanceDynamic(iMat));
 	}
 
-	// play respawn effects
-	if (GetNetMode() != NM_DedicatedServer)
+	if (RespawnFX)
 	{
-		if (RespawnFX)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(this, RespawnFX, GetActorLocation(), GetActorRotation());
-		}
-
-		if (RespawnSound)
-		{
-			UGameplayStatics::PlaySoundAtLocation(this, RespawnSound, GetActorLocation());
-		}
+		UGameplayStatics::SpawnEmitterAtLocation(this, RespawnFX, GetActorLocation(), GetActorRotation());
 	}
+
+	if (RespawnSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, RespawnSound, GetActorLocation());
+	}
+	
 }
 
 void AFPSCharacter::Destroyed()
@@ -831,11 +899,6 @@ class AFPSWeapon* AFPSCharacter::FindWeapon(TSubclassOf<class AFPSWeapon> Weapon
 
 void AFPSCharacter::SpawnDefaultInventory()
 {
-	if (Role < ROLE_Authority)
-	{
-		return;
-	}
-
 	int32 NumWeaponClasses = DefaultInventoryClasses.Num();
 	for (int32 i = 0; i < NumWeaponClasses; i++)
 	{
@@ -857,11 +920,6 @@ void AFPSCharacter::SpawnDefaultInventory()
 
 void AFPSCharacter::DestroyInventory()
 {
-	if (Role < ROLE_Authority)
-	{
-		return;
-	}
-
 	// remove all weapons from inventory and destroy them
 	for (int32 i = Inventory.Num() - 1; i >= 0; i--)
 	{
@@ -874,41 +932,41 @@ void AFPSCharacter::DestroyInventory()
 	}
 }
 
-void AFPSCharacter::AddWeapon(class AFPSWeapon* Weapon)
+void AFPSCharacter::AddWeapon(AFPSWeapon* Weapon)
 {
-	if (Weapon && Role == ROLE_Authority)
+	if (Weapon)
 	{
 		Weapon->OnEnterInventory(this);
 		Inventory.AddUnique(Weapon);
 	}
 }
 
-void AFPSCharacter::RemoveWeapon(class AFPSWeapon* Weapon)
+void AFPSCharacter::RemoveWeapon(AFPSWeapon* Weapon)
 {
-	if (Weapon && Role == ROLE_Authority)
+	if (Weapon)
 	{
 		Weapon->OnLeaveInventory();
 		Inventory.RemoveSingle(Weapon);
 	}
 }
 
-void AFPSCharacter::EquipWeapon(class AFPSWeapon* Weapon)
+void AFPSCharacter::EquipWeapon(AFPSWeapon* Weapon)
 {
 	if (Weapon)
 	{
-		if (Role == ROLE_Authority)
-		{
-			SetCurrentWeapon(Weapon, CurrentWeapon);
-		}
-		else
-		{
-			ServerEquipWeapon(Weapon);
-		}
+		SetCurrentWeapon(Weapon, CurrentWeapon);
 	}
-
 }
 
-void AFPSCharacter::SetCurrentWeapon(class AFPSWeapon* NewWeapon, class AFPSWeapon* LastWeapon /*= NULL*/)
+void AFPSCharacter::UnEquipWeapon(AFPSWeapon* Weapon)
+{
+	if (Weapon && Weapon == CurrentWeapon)
+	{
+		SetCurrentWeapon(nullptr, Weapon);
+	}
+}
+
+void AFPSCharacter::SetCurrentWeapon(AFPSWeapon* NewWeapon, AFPSWeapon* LastWeapon /*= NULL*/)
 {
 	AFPSWeapon* LocalLastWeapon = NULL;
 
@@ -1077,6 +1135,63 @@ void AFPSCharacter::StopAllAnimMontages()
 	}
 }
 
+AUsableActor* AFPSCharacter::GetUsableActorInView()
+{
+	FVector CamLoc;
+	FRotator CamRot;
+
+	if (Controller == nullptr)
+	{
+		return nullptr;
+	}
+
+	Controller->GetPlayerViewPoint(CamLoc, CamRot);
+
+	const FVector TraceStart = CamLoc;
+	const FVector Direction = CamRot.Vector();
+	const FVector TraceEnd = TraceStart + (Direction * MaxUseDistance);
+
+	FCollisionQueryParams TraceParams(TEXT("TraceUsableActor"), true, this);
+	TraceParams.bTraceAsyncScene = true;
+	TraceParams.bReturnPhysicalMaterial = false;
+	TraceParams.bTraceComplex = false;
+
+	FHitResult Hit(ForceInit);
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, TraceParams);
+
+	//DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 2);
+	
+	return Cast<AUsableActor>(Hit.GetActor());
+}
+
+void AFPSCharacter::TickViewUsable()
+{
+	if (Controller && Controller->IsLocalController())
+	{
+		AUsableActor* TheUsableActor = GetUsableActorInView();
+
+		if (FocusedUsableActor != TheUsableActor)
+		{
+			if (FocusedUsableActor)
+			{
+				FocusedUsableActor->OnEndFocus();
+			}
+			bHasNewFocus = true;
+		}
+
+		FocusedUsableActor = TheUsableActor;
+
+		if (TheUsableActor)
+		{
+			if (bHasNewFocus)
+			{
+				TheUsableActor->OnBeginFocus();
+				bHasNewFocus = false;
+			}
+		}
+	}
+}
+
 bool AFPSCharacter::ServerSetTargeting_Validate(bool bNewTargeting)
 {
 	return true;
@@ -1095,16 +1210,6 @@ bool AFPSCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle)
 void AFPSCharacter::ServerSetRunning_Implementation(bool bNewRunning, bool bToggle)
 {
 	SetRunning(bNewRunning, bToggle);
-}
-
-bool AFPSCharacter::ServerEquipWeapon_Validate(class AFPSWeapon* NewWeapon)
-{
-	return true;
-}
-
-void AFPSCharacter::ServerEquipWeapon_Implementation(class AFPSWeapon* NewWeapon)
-{
-	EquipWeapon(NewWeapon);
 }
 
 void AFPSCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

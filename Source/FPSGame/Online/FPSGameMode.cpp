@@ -16,10 +16,10 @@
 AFPSGameMode::AFPSGameMode() :Super()
 {
 
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnFinder(TEXT("/Game/Blueprints/Player/PlayerPawn"));
+	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnFinder(TEXT("/Game/Blueprints/Player/Player_Pawn"));
 	DefaultPawnClass = PlayerPawnFinder.Class;
 
-	static ConstructorHelpers::FClassFinder<APawn> BotPawnFinder(TEXT("/Game/Blueprints/Bot/Bot"));
+	static ConstructorHelpers::FClassFinder<APawn> BotPawnFinder(TEXT("/Game/Blueprints/Bot/Bot_Shooter"));
 	BotPawnClass = BotPawnFinder.Class;
 
 	HUDClass = AGameHUD::StaticClass();
