@@ -51,9 +51,6 @@ AFPSWeapon::AFPSWeapon()
 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
-	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
-	bReplicates = true;
-	bNetUseOwnerRelevancy = true;
 }
 
 
@@ -81,7 +78,7 @@ FVector AFPSWeapon::GetAdjustedAim() const
 {
 	AFPSPlayerController* const PlayerController = Instigator ? Cast<AFPSPlayerController>(Instigator->Controller) : NULL;
 	FVector FinalAim = FVector::ZeroVector;
-	// If we have a player controller use it for the aim
+
 	if (PlayerController)
 	{
 		FVector CamLoc;
@@ -91,7 +88,6 @@ FVector AFPSWeapon::GetAdjustedAim() const
 	}
 	else if (Instigator)
 	{
-		// Now see if we have an AI controller - we will want to get the aim from there if we do
 		AFPSAIController* AIController = MyPawn ? Cast<AFPSAIController>(MyPawn->Controller) : NULL;
 		if (AIController != NULL)
 		{
@@ -134,11 +130,8 @@ FVector AFPSWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 
 	if (PC)
 	{
-		// use player's camera
 		FRotator UnusedRot;
 		PC->GetPlayerViewPoint(OutStartTrace, UnusedRot);
-
-		// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
 		OutStartTrace = OutStartTrace + AimDir * (FVector::DotProduct((Instigator->GetActorLocation() - OutStartTrace), AimDir));
 	}
 	else if (AIPC)
@@ -176,18 +169,17 @@ FHitResult AFPSWeapon::WeaponTrace(const FVector& TraceFrom, const FVector& Trac
 	return Hit;
 }
 
-void AFPSWeapon::SetOwningPawn(AFPSCharacter* NewOwner)
+void AFPSWeapon::SetOwningCharacter(AFPSCharacter* NewOwner)
 {
 	if (MyPawn != NewOwner)
 	{
 		Instigator = NewOwner;
 		MyPawn = NewOwner;
-		// net owner for RPC calls
 		SetOwner(NewOwner);
 	}
 }
 
-class AFPSCharacter* AFPSWeapon::GetOwningPawn() const
+AFPSCharacter* AFPSWeapon::GetOwningCharacter() const
 {
 	return MyPawn;
 }
@@ -197,17 +189,6 @@ USkeletalMeshComponent* AFPSWeapon::GetWeaponMesh() const
 	return (MyPawn != NULL && MyPawn->IsFirstPerson()) ? Mesh1P : Mesh3P;
 }
 
-void AFPSWeapon::OnRep_MyPawn()
-{
-	if (MyPawn)
-	{
-		OnEnterInventory(MyPawn);
-	}
-	else
-	{
-		OnLeaveInventory();
-	}
-}
 
 EWeaponState::Type AFPSWeapon::GetCurrentState() const
 {
@@ -263,15 +244,12 @@ void AFPSWeapon::SetWeaponState(EWeaponState::Type NewState)
 
 void AFPSWeapon::OnEnterInventory(AFPSCharacter* NewOwner)
 {
-	SetOwningPawn(NewOwner);
+	SetOwningCharacter(NewOwner);
 }
 
 void AFPSWeapon::OnLeaveInventory()
 {
-	if (Role == ROLE_Authority)
-	{
-		SetOwningPawn(NULL);
-	}
+	SetOwningCharacter(NULL);
 
 	if (IsAttachedToPawn())
 	{
@@ -291,26 +269,18 @@ void AFPSWeapon::OnEquip(const AFPSWeapon* LastWeapon)
 	bPendingEquip = true;
 	DetermineWeaponState();
 
-	// Only play animation if last weapon is valid
-	if (LastWeapon)
+	float Duration = PlayChatacterAnimation(EquipAnim);
+	if (Duration <= 0.0f)
 	{
-		float Duration = PlayWeaponAnimation(EquipAnim);
-		if (Duration <= 0.0f)
-		{
-			// failsafe
-			Duration = 0.5f;
-		}
-		EquipStartedTime = GetWorld()->GetTimeSeconds();
-		EquipDurationTime = Duration;
-
-		GetWorldTimerManager().SetTimer(TimerHandle_OnEquipFinished, this, &AFPSWeapon::OnEquipFinished, Duration, false);
+		// failsafe
+		Duration = 0.5f;
 	}
-	else
-	{
-		OnEquipFinished();
-	}
+	EquipStartedTime = GetWorld()->GetTimeSeconds();
+	EquipDurationTime = Duration;
 
-	if (MyPawn && MyPawn->IsLocallyControlled())
+	GetWorldTimerManager().SetTimer(TimerHandle_OnEquipFinished, this, &AFPSWeapon::OnEquipFinished, Duration, false);
+
+	if (MyPawn)
 	{
 		PlayWeaponSound(EquipSound);
 	}
@@ -324,7 +294,7 @@ void AFPSWeapon::OnUnEquip()
 
 	if (bPendingReload)
 	{
-		StopWeaponAnimation(ReloadAnim);
+		StopChatacterAnimation(ReloadAnim);
 		bPendingReload = false;
 
 		GetWorldTimerManager().ClearTimer(TimerHandle_StopReload);
@@ -333,7 +303,7 @@ void AFPSWeapon::OnUnEquip()
 
 	if (bPendingEquip)
 	{
-		StopWeaponAnimation(EquipAnim);
+		StopChatacterAnimation(EquipAnim);
 		bPendingEquip = false;
 
 		GetWorldTimerManager().ClearTimer(TimerHandle_OnEquipFinished);
@@ -355,8 +325,7 @@ void AFPSWeapon::OnEquipFinished()
 	if (MyPawn)
 	{
 		// try to reload empty clip
-		if (MyPawn->IsLocallyControlled() &&
-			CurrentAmmoInClip <= 0 &&
+		if (CurrentAmmoInClip <= 0 &&
 			CanReload())
 		{
 			StartReload();
@@ -373,26 +342,15 @@ void AFPSWeapon::AttachMeshToPawn()
 
 		// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
 		FName AttachPoint = MyPawn->GetWeaponAttachPoint();
-		if (MyPawn->IsLocallyControlled() == true)
-		{
-			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
-			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
-			Mesh1P->SetHiddenInGame(false);
-			Mesh3P->SetHiddenInGame(false);
-			Mesh1P->AttachTo(PawnMesh1p, AttachPoint, EAttachLocation::SnapToTarget);
-			Mesh3P->AttachTo(PawnMesh3p, AttachPoint, EAttachLocation::SnapToTarget);
-			Mesh3P->bOwnerNoSee = true;
-			Mesh1P->bOnlyOwnerSee = true;
-		}
-		else
-		{
-			USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh();
-			USkeletalMeshComponent* UsePawnMesh = MyPawn->GetPawnMesh();
-			UseWeaponMesh->AttachTo(UsePawnMesh, AttachPoint, EAttachLocation::SnapToTarget);
-			UseWeaponMesh->SetHiddenInGame(false);
+		USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
+		USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
+		Mesh1P->SetHiddenInGame(false);
+		Mesh3P->SetHiddenInGame(false);
+		Mesh1P->AttachTo(PawnMesh1p, AttachPoint, EAttachLocation::SnapToTarget);
+		Mesh3P->AttachTo(PawnMesh3p, AttachPoint, EAttachLocation::SnapToTarget);
+		Mesh3P->bOwnerNoSee = true;
+		Mesh1P->bOnlyOwnerSee = true;
 
-
-		}
 	}
 }
 
@@ -407,10 +365,6 @@ void AFPSWeapon::DetachMeshFromPawn()
 
 void AFPSWeapon::StartFire()
 {
-	if (Role < ROLE_Authority)
-	{
-		ServerStartFire();
-	}
 
 	if (!bWantsToFire)
 	{
@@ -421,36 +375,12 @@ void AFPSWeapon::StartFire()
 
 void AFPSWeapon::StopFire()
 {
-	if (Role < ROLE_Authority)
-	{
-		ServerStopFire();
-	}
 
 	if (bWantsToFire)
 	{
 		bWantsToFire = false;
 		DetermineWeaponState();
 	}
-}
-
-bool AFPSWeapon::ServerStartFire_Validate()
-{
-	return true;
-}
-
-void AFPSWeapon::ServerStartFire_Implementation()
-{
-	StartFire();
-}
-
-bool AFPSWeapon::ServerStopFire_Validate()
-{
-	return true;
-}
-
-void AFPSWeapon::ServerStopFire_Implementation()
-{
-	StopFire();
 }
 
 bool AFPSWeapon::CanFire() const
@@ -472,7 +402,7 @@ UAudioComponent* AFPSWeapon::PlayWeaponSound(USoundCue* Sound)
 	return AC;
 }
 
-float AFPSWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation)
+float AFPSWeapon::PlayChatacterAnimation(const FInstigatorAnim& Animation)
 {
 	float Duration = 0.0f;
 	if (MyPawn)
@@ -487,7 +417,7 @@ float AFPSWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation)
 	return Duration;
 }
 
-void AFPSWeapon::StopWeaponAnimation(const FWeaponAnim& Animation)
+void AFPSWeapon::StopChatacterAnimation(const FInstigatorAnim& Animation)
 {
 	if (MyPawn)
 	{
@@ -499,43 +429,30 @@ void AFPSWeapon::StopWeaponAnimation(const FWeaponAnim& Animation)
 	}
 }
 
-void AFPSWeapon::OnRep_BurstCounter()
-{
-	if (BurstCounter > 0)
-	{
-		StartSimulateWeaponFire();
-	}
-	else
-	{
-		StopSimulatingWeaponFire();
-	}
-}
-
 void AFPSWeapon::HandleFiring()
 {
+	//有弹药 可以直接开火
 	if ((CurrentAmmoInClip > 0 || HasInfiniteClip() || HasInfiniteAmmo()) && CanFire())
 	{
-		if (GetNetMode() != NM_DedicatedServer)
-		{
-			StartSimulateWeaponFire();
-		}
+		StartSimulateWeaponFire();
 
-		if (MyPawn && MyPawn->IsLocallyControlled())
+		if (MyPawn)
 		{
 			FireWeapon();
 
-			UseAmmo();
+			ConsumeAmmo();
 
-			// update firing FX on remote clients if function was called on server
 			BurstCounter++;
 		}
 
 	}
+	//弹夹内没弹药了，但可以Reload
 	else if (CanReload())
 	{
 		StartReload();
 	}
-	else if (MyPawn && MyPawn->IsLocallyControlled())
+	//弹夹内没弹药了，也不能Reload，不能继续开火了
+	else if (MyPawn)
 	{
 		if (GetCurrentAmmo() == 0 && !bRefiring)
 		{
@@ -548,28 +465,22 @@ void AFPSWeapon::HandleFiring()
 			}
 		}
 
-		// stop weapon fire FX, but stay in Firing state
 		if (BurstCounter > 0)
 		{
 			OnBurstFinished();
 		}
 	}
 
-	if (MyPawn && MyPawn->IsLocallyControlled())
-	{
-		// local client will notify server
-		if (Role < ROLE_Authority)
-		{
-			ServerHandleFiring();
-		}
 
-		// reload after firing last round
+	if (MyPawn)
+	{
+		//弹药用光，Reload
 		if (CurrentAmmoInClip <= 0 && CanReload())
 		{
 			StartReload();
 		}
 
-		// setup refire timer
+		//继续本轮射击
 		bRefiring = (CurrentState == EWeaponState::Firing && WeaponConfig.TimeBetweenShots > 0.0f);
 		if (bRefiring)
 		{
@@ -577,28 +488,6 @@ void AFPSWeapon::HandleFiring()
 		}
 	}
 	LastFireTime = GetWorld()->GetTimeSeconds();
-
-}
-
-bool AFPSWeapon::ServerHandleFiring_Validate()
-{
-	return true;
-}
-
-void AFPSWeapon::ServerHandleFiring_Implementation()
-{
-	const bool bShouldUpdateAmmo = (CurrentAmmoInClip > 0 && CanFire());
-
-	HandleFiring();
-
-	if (bShouldUpdateAmmo)
-	{
-		// update ammo
-		UseAmmo();
-
-		// update firing FX on remote clients
-		BurstCounter++;
-	}
 }
 
 void AFPSWeapon::OnBurstStarted()
@@ -621,11 +510,7 @@ void AFPSWeapon::OnBurstFinished()
 	// stop firing FX on remote clients
 	BurstCounter = 0;
 
-	// stop firing FX locally, unless it's a dedicated server
-	if (GetNetMode() != NM_DedicatedServer)
-	{
-		StopSimulatingWeaponFire();
-	}
+	StopSimulatingWeaponFire();
 
 	GetWorldTimerManager().ClearTimer(TimerHandle_HandleFiring);
 	bRefiring = false;
@@ -633,47 +518,51 @@ void AFPSWeapon::OnBurstFinished()
 
 void AFPSWeapon::StartSimulateWeaponFire()
 {
-	if (Role == ROLE_Authority && CurrentState != EWeaponState::Firing)
+	if (CurrentState != EWeaponState::Firing)
 	{
 		return;
 	}
 
+	//枪口特效
 	if (MuzzleFX)
 	{
 		USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh();
-		if (!bLoopedMuzzleFX || MuzzlePSC == NULL)
+		if (!bLoopedMuzzleFX || MuzzlePSC1P == NULL)
 		{
-			// Split screen requires we create 2 effects. One that we see and one that the other player sees.
-			if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
+			if (MyPawn != NULL)
 			{
 				AController* PlayerCon = MyPawn->GetController();
 				if (PlayerCon != NULL)
 				{
+					//第一人称
 					Mesh1P->GetSocketLocation(MuzzleAttachPoint);
-					MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
-					MuzzlePSC->bOwnerNoSee = false;
-					MuzzlePSC->bOnlyOwnerSee = true;
+					MuzzlePSC1P = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
+					MuzzlePSC1P->bOwnerNoSee = false;
+					MuzzlePSC1P->bOnlyOwnerSee = true;
 
+					//第三人称
 					Mesh3P->GetSocketLocation(MuzzleAttachPoint);
-					MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
-					MuzzlePSCSecondary->bOwnerNoSee = true;
-					MuzzlePSCSecondary->bOnlyOwnerSee = false;
+					MuzzlePSC3P = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
+					MuzzlePSC3P->bOwnerNoSee = true;
+					MuzzlePSC3P->bOnlyOwnerSee = false;
 				}
 			}
 			else
 			{
-				MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
+				MuzzlePSC1P = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
 			}
 
 		}
 	}
 
+	//Owner的动画
 	if (!bLoopedFireAnim || !bPlayingFireAnim)
 	{
-		PlayWeaponAnimation(FireAnim);
+		PlayChatacterAnimation(FireAnim);
 		bPlayingFireAnim = true;
 	}
 
+	//声音
 	if (bLoopedFireSound)
 	{
 		if (FireAC == NULL)
@@ -685,43 +574,43 @@ void AFPSWeapon::StartSimulateWeaponFire()
 	{
 		PlayWeaponSound(FireSound);
 	}
-
+	
+	//CameraShake
 	AFPSPlayerController* PC = (MyPawn != NULL) ? Cast<AFPSPlayerController>(MyPawn->Controller) : NULL;
-	if (PC != NULL && PC->IsLocalController())
+	if (PC != NULL)
 	{
 		if (FireCameraShake != NULL)
 		{
 			PC->ClientPlayCameraShake(FireCameraShake, 1);
-		}
-		if (FireForceFeedback != NULL)
-		{
-			PC->ClientPlayForceFeedback(FireForceFeedback, false, "Weapon");
 		}
 	}
 }
 
 void AFPSWeapon::StopSimulatingWeaponFire()
 {
+	//枪口特效
 	if (bLoopedMuzzleFX)
 	{
-		if (MuzzlePSC != NULL)
+		if (MuzzlePSC1P != NULL)
 		{
-			MuzzlePSC->DeactivateSystem();
-			MuzzlePSC = NULL;
+			MuzzlePSC1P->DeactivateSystem();
+			MuzzlePSC1P = NULL;
 		}
-		if (MuzzlePSCSecondary != NULL)
+		if (MuzzlePSC3P != NULL)
 		{
-			MuzzlePSCSecondary->DeactivateSystem();
-			MuzzlePSCSecondary = NULL;
+			MuzzlePSC3P->DeactivateSystem();
+			MuzzlePSC3P = NULL;
 		}
 	}
 
+	//Owner动画
 	if (bLoopedFireAnim && bPlayingFireAnim)
 	{
-		StopWeaponAnimation(FireAnim);
+		StopChatacterAnimation(FireAnim);
 		bPlayingFireAnim = false;
 	}
 
+	//声音
 	if (FireAC)
 	{
 		FireAC->FadeOut(0.1f, 0.0f);
@@ -731,43 +620,23 @@ void AFPSWeapon::StopSimulatingWeaponFire()
 	}
 }
 
-void AFPSWeapon::OnRep_Reload()
+void AFPSWeapon::StartReload()
 {
-	if (bPendingReload)
-	{
-		StartReload(true);
-	}
-	else
-	{
-		StopReload();
-	}
-}
-
-void AFPSWeapon::StartReload(bool bFromReplication /*= false*/)
-{
-	if (!bFromReplication && Role < ROLE_Authority)
-	{
-		ServerStartReload();
-	}
-
-	if (bFromReplication || CanReload())
+	if (CanReload())
 	{
 		bPendingReload = true;
 		DetermineWeaponState();
 
-		float AnimDuration = PlayWeaponAnimation(ReloadAnim);
+		float AnimDuration = PlayChatacterAnimation(ReloadAnim);
 		if (AnimDuration <= 0.0f)
 		{
 			AnimDuration = WeaponConfig.NoAnimReloadDuration;
 		}
 
 		GetWorldTimerManager().SetTimer(TimerHandle_StopReload, this, &AFPSWeapon::StopReload, AnimDuration, false);
-		if (Role == ROLE_Authority)
-		{
-			GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AFPSWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
-		}
+		GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AFPSWeapon::ReloadActual, FMath::Max(0.1f, AnimDuration - 0.1f), false);
 
-		if (MyPawn && MyPawn->IsLocallyControlled())
+		if (MyPawn)
 		{
 			PlayWeaponSound(ReloadSound);
 		}
@@ -780,36 +649,12 @@ void AFPSWeapon::StopReload()
 	{
 		bPendingReload = false;
 		DetermineWeaponState();
-		StopWeaponAnimation(ReloadAnim);
+		StopChatacterAnimation(ReloadAnim);
 	}
 }
 
-bool AFPSWeapon::ServerStartReload_Validate()
-{
-	return true;
-}
 
-void AFPSWeapon::ServerStartReload_Implementation()
-{
-	StartReload();
-}
-
-bool AFPSWeapon::ServerStopReload_Validate()
-{
-	return true;
-}
-
-void AFPSWeapon::ServerStopReload_Implementation()
-{
-	StopReload();
-}
-
-void AFPSWeapon::ClientStartReload_Implementation()
-{
-	StartReload();
-}
-
-void AFPSWeapon::ReloadWeapon()
+void AFPSWeapon::ReloadActual()
 {
 	int32 ClipDelta = FMath::Min(WeaponConfig.AmmoPerClip - CurrentAmmoInClip, CurrentAmmo - CurrentAmmoInClip);
 
@@ -850,7 +695,7 @@ bool AFPSWeapon::HasInfiniteAmmo() const
 	return WeaponConfig.bInfiniteAmmo || (MyPC && MyPC->HasInfiniteAmmo());
 }
 
-void AFPSWeapon::UseAmmo()
+void AFPSWeapon::ConsumeAmmo()
 {
 	if (!HasInfiniteAmmo())
 	{
@@ -884,7 +729,7 @@ void AFPSWeapon::UseAmmo()
 	}
 }
 
-void AFPSWeapon::GiveAmmo(int AddAmount)
+void AFPSWeapon::AddAmmo(int AddAmount)
 {
 	const int32 MissingAmmo = FMath::Max(0, WeaponConfig.MaxAmmo - CurrentAmmo);
 	AddAmount = FMath::Min(AddAmount, MissingAmmo);
@@ -901,7 +746,7 @@ void AFPSWeapon::GiveAmmo(int AddAmount)
 		CanReload() &&
 		MyPawn->GetWeapon() == this)
 	{
-		ClientStartReload();
+		StartReload();
 	}
 }
 
@@ -923,17 +768,4 @@ int32 AFPSWeapon::GetAmmoPerClip() const
 int32 AFPSWeapon::GetMaxAmmo() const
 {
 	return WeaponConfig.MaxAmmo;
-}
-
-void AFPSWeapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AFPSWeapon, MyPawn);
-
-	DOREPLIFETIME_CONDITION(AFPSWeapon, CurrentAmmo, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AFPSWeapon, CurrentAmmoInClip, COND_OwnerOnly);
-
-	DOREPLIFETIME_CONDITION(AFPSWeapon, bPendingReload, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(AFPSWeapon, BurstCounter, COND_SkipOwner);
 }

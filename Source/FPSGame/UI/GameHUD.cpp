@@ -11,7 +11,7 @@ bool AGameHUD::ShowScoreboard(bool bEnable, bool bFocus /*= false*/)
 	return false;
 }
 
-void AGameHUD::SetMatchState(EShooterMatchState::Type NewState)
+void AGameHUD::SetMatchState(EShooterMatchState NewState)
 {
 
 }

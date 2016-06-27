@@ -3,7 +3,6 @@
 #pragma once
 
 #include "GameFramework/HUD.h"
-#include "FPSTypes.h"
 #include "GameHUD.generated.h"
 /**
  * 
@@ -28,7 +27,7 @@ public:
 	*
 	* @param	NewState	The new match state.
 	*/
-	void SetMatchState(EShooterMatchState::Type NewState);
+	void SetMatchState(EShooterMatchState NewState);
 
 	/** Sent from ShooterWeapon, shows NO AMMO text. */
 	void NotifyOutOfAmmo();

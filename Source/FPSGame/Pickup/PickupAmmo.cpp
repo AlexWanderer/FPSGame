@@ -32,7 +32,7 @@ void APickupAmmo::GivePickupTo(AFPSCharacter* Pawn)
 	if (Weapon)
 	{
 		int32 Qty = AmmoClips * Weapon->GetAmmoPerClip();
-		Weapon->GiveAmmo(Qty);
+		Weapon->AddAmmo(Qty);
 
 	}
 }

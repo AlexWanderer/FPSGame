@@ -3,8 +3,29 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "FPSTypes.h"
 #include "FPSImpactEffect.generated.h"
+
+
+USTRUCT()
+struct FDecalData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = Decal)
+	UMaterial* DecalMaterial;
+
+	UPROPERTY(EditDefaultsOnly, Category = Decal)
+	float DecalSize;
+
+	UPROPERTY(EditDefaultsOnly, Category = Decal)
+	float LifeSpan;
+
+	FDecalData()
+		: DecalSize(256.f)
+		, LifeSpan(10.f)
+	{
+	}
+};
 
 UCLASS(Abstract, Blueprintable)
 class AFPSImpactEffect : public AActor
@@ -89,10 +110,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 	USoundCue* FleshSound;
 
-
 	/** default decal when material specific override doesn't exist */
 	UPROPERTY(EditDefaultsOnly, Category = Defaults)
-	struct FDecalData DefaultDecal;
+	FDecalData DefaultDecal;
 
 	/** surface data for spawning */
 	UPROPERTY(BlueprintReadOnly, Category = Surface)

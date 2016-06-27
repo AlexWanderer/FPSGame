@@ -5,9 +5,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPSCharacterMovementComponent.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class UFPSCharacterMovementComponent : public UCharacterMovementComponent
 {

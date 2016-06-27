@@ -45,16 +45,40 @@ AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer)
 	bWantsToFire = false;
 	LowHealthPercentage = 0.5f;
 
-	BaseTurnRate = 45.f;
-	BaseLookUpRate = 45.f;
-
 	RunningSpeedModifier = 1.5f;
 	TargetingSpeedModifier = 0.5f;
 
 }
 
 
-// Called every frame
+void AFPSCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Health = GetMaxHealth();
+	SpawnDefaultInventory();
+
+
+	// set initial mesh visibility (3rd person view)
+	UpdatePawnMeshes();
+
+	// create material instance for setting team colors (3rd person view)
+	for (int32 iMat = 0; iMat < GetMesh()->GetNumMaterials(); iMat++)
+	{
+		MeshMIDs.Add(GetMesh()->CreateAndSetMaterialInstanceDynamic(iMat));
+	}
+
+	if (RespawnFX)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, RespawnFX, GetActorLocation(), GetActorRotation());
+	}
+
+	if (RespawnSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, RespawnSound, GetActorLocation());
+	}
+}
+
 void AFPSCharacter::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
@@ -100,17 +124,14 @@ void AFPSCharacter::Tick( float DeltaTime )
 	TickViewUsable();
 }
 
-// Called to bind functionality to input
-void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
 {
 	check(InputComponent);
-	InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-	InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-	InputComponent->BindAxis("MoveUp", this, &AFPSCharacter::MoveUp);
+	InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::OnMoveForward);
+	InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::OnMoveRight);
+	InputComponent->BindAxis("MoveUp", this, &AFPSCharacter::OnMoveUp);
 	InputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	InputComponent->BindAxis("TurnRate", this, &AFPSCharacter::TurnAtRate);
 	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	InputComponent->BindAxis("LookUpRate", this, &AFPSCharacter::LookUpAtRate);
 
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::OnStartFire);
 	InputComponent->BindAction("Fire", IE_Released, this, &AFPSCharacter::OnStopFire);
@@ -127,14 +148,13 @@ void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputCompon
 	InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
 
 	InputComponent->BindAction("Run", IE_Pressed, this, &AFPSCharacter::OnStartRunning);
-	InputComponent->BindAction("RunToggle", IE_Pressed, this, &AFPSCharacter::OnStartRunningToggle);
 	InputComponent->BindAction("Run", IE_Released, this, &AFPSCharacter::OnStopRunning);
 
 	InputComponent->BindAction("Use", IE_Pressed, this, &AFPSCharacter::OnUse);
 	InputComponent->BindAction("Drop", IE_Pressed, this, &AFPSCharacter::OnDrop);
 }
 
-void AFPSCharacter::MoveForward(float Val)
+void AFPSCharacter::OnMoveForward(float Val)
 {
 	if (Controller && Val != 0.f)
 	{
@@ -146,7 +166,7 @@ void AFPSCharacter::MoveForward(float Val)
 	}
 }
 
-void AFPSCharacter::MoveRight(float Val)
+void AFPSCharacter::OnMoveRight(float Val)
 {
 	if (Val != 0.f)
 	{
@@ -156,7 +176,7 @@ void AFPSCharacter::MoveRight(float Val)
 	}
 }
 
-void AFPSCharacter::MoveUp(float Val)
+void AFPSCharacter::OnMoveUp(float Val)
 {
 	if (Val != 0.f)
 	{
@@ -168,18 +188,6 @@ void AFPSCharacter::MoveUp(float Val)
 
 		AddMovementInput(FVector::UpVector, Val);
 	}
-}
-
-void AFPSCharacter::TurnAtRate(float Val)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Val * BaseTurnRate * GetWorld()->GetDeltaSeconds());
-}
-
-void AFPSCharacter::LookUpAtRate(float Val)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Val * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
 void AFPSCharacter::OnStartFire()
@@ -223,9 +231,9 @@ void AFPSCharacter::OnNextWeapon()
 	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
 	if (MyPC && MyPC->IsGameInputAllowed())
 	{
-		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
+		if (Inventory.Num() >= 2 && (WeaponCurrent == NULL || WeaponCurrent->GetCurrentState() != EWeaponState::Equipping))
 		{
-			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(WeaponCurrent);
 			AFPSWeapon* NextWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
 			EquipWeapon(NextWeapon);
 		}
@@ -237,9 +245,9 @@ void AFPSCharacter::OnPrevWeapon()
 	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
 	if (MyPC && MyPC->IsGameInputAllowed())
 	{
-		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
+		if (Inventory.Num() >= 2 && (WeaponCurrent == NULL || WeaponCurrent->GetCurrentState() != EWeaponState::Equipping))
 		{
-			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(WeaponCurrent);
 			AFPSWeapon* PrevWeapon = Inventory[(CurrentWeaponIdx - 1 + Inventory.Num()) % Inventory.Num()];
 			EquipWeapon(PrevWeapon);
 		}
@@ -251,9 +259,9 @@ void AFPSCharacter::OnReload()
 	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
 	if (MyPC && MyPC->IsGameInputAllowed())
 	{
-		if (CurrentWeapon)
+		if (WeaponCurrent)
 		{
-			CurrentWeapon->StartReload();
+			WeaponCurrent->StartReload();
 		}
 	}
 }
@@ -286,20 +294,6 @@ void AFPSCharacter::OnStartRunning()
 	}
 }
 
-void AFPSCharacter::OnStartRunningToggle()
-{
-	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
-	if (MyPC && MyPC->IsGameInputAllowed())
-	{
-		if (IsTargeting())
-		{
-			SetTargeting(false);
-		}
-		StopWeaponFire();
-		SetRunning(true, true);
-	}
-}
-
 void AFPSCharacter::OnStopRunning()
 {
 	SetRunning(false, false);
@@ -316,7 +310,7 @@ void AFPSCharacter::OnUse()
 
 void AFPSCharacter::OnDrop()
 {
-	if (CurrentWeapon)
+	if (WeaponCurrent)
 	{
 		if (Controller == nullptr)
 		{
@@ -353,7 +347,7 @@ void AFPSCharacter::OnDrop()
 		FActorSpawnParameters SpawnParam;
 		SpawnParam.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		AItemWeapon* NewWeaponItem = GetWorld()->SpawnActor<AItemWeapon>(CurrentWeapon->ItemClass, SpawnLoc, FRotator::ZeroRotator, SpawnParam);
+		AItemWeapon* NewWeaponItem = GetWorld()->SpawnActor<AItemWeapon>(WeaponCurrent->ItemClass, SpawnLoc, FRotator::ZeroRotator, SpawnParam);
 
 		if (NewWeaponItem)
 		{
@@ -366,39 +360,11 @@ void AFPSCharacter::OnDrop()
 			}
 		}
 
-		RemoveWeapon(CurrentWeapon);
-		UnEquipWeapon(CurrentWeapon);
+		RemoveWeapon(WeaponCurrent);
+		UnEquipWeapon(WeaponCurrent);
 	}
 }
 
-void AFPSCharacter::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	Health = GetMaxHealth();
-	SpawnDefaultInventory();
-
-
-	// set initial mesh visibility (3rd person view)
-	UpdatePawnMeshes();
-
-	// create material instance for setting team colors (3rd person view)
-	for (int32 iMat = 0; iMat < GetMesh()->GetNumMaterials(); iMat++)
-	{
-		MeshMIDs.Add(GetMesh()->CreateAndSetMaterialInstanceDynamic(iMat));
-	}
-
-	if (RespawnFX)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, RespawnFX, GetActorLocation(), GetActorRotation());
-	}
-
-	if (RespawnSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, RespawnSound, GetActorLocation());
-	}
-	
-}
 
 void AFPSCharacter::Destroyed()
 {
@@ -406,48 +372,6 @@ void AFPSCharacter::Destroyed()
 	DestroyInventory();
 }
 
-void AFPSCharacter::PawnClientRestart()
-{
-	Super::PawnClientRestart();
-
-	// switch mesh to 1st person view
-	UpdatePawnMeshes();
-
-	// reattach weapon if needed
-	SetCurrentWeapon(CurrentWeapon);
-
-	// set team colors for 1st person view
-	UMaterialInstanceDynamic* Mesh1PMID = Mesh1P->CreateAndSetMaterialInstanceDynamic(0);
-	UpdateTeamColors(Mesh1PMID);
-}
-
-void AFPSCharacter::PossessedBy(class AController* InController)
-{
-	Super::PossessedBy(InController);
-
-	// [server] as soon as PlayerState is assigned, set team colors of this pawn for local player
-	UpdateTeamColorsAllMIDs();
-}
-
-void AFPSCharacter::OnRep_PlayerState()
-{
-	Super::OnRep_PlayerState();
-
-	// [client] as soon as PlayerState is assigned, set team colors of this pawn for local player
-	if (PlayerState != NULL)
-	{
-		UpdateTeamColorsAllMIDs();
-	}
-}
-
-void AFPSCharacter::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
-{
-	Super::PreReplication(ChangedPropertyTracker);
-
-	// Only replicate this property for a short duration after it changes so join in progress players don't get spammed with fx when joining late
-	DOREPLIFETIME_ACTIVE_OVERRIDE(AFPSCharacter, LastTakeHitInfo, GetWorld() && GetWorld()->GetTimeSeconds() < LastTakeHitTimeTimeout);
-
-}
 
 void AFPSCharacter::OnCameraUpdate(const FVector& CameraLocation, const FRotator& CameraRotation)
 {
@@ -567,7 +491,7 @@ USkeletalMeshComponent* AFPSCharacter::GetSpecifcPawnMesh(bool bWantFirstPerson)
 	return bWantFirstPerson == true ? Mesh1P : GetMesh();
 }
 
-float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
+float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
 	if (MyPC && MyPC->HasGodMode())
@@ -594,7 +518,7 @@ float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageE
 		}
 		else
 		{
-			PlayHit(ActualDamage, DamageEvent, EventInstigator ? EventInstigator->GetPawn() : NULL, DamageCauser);
+			Hit(ActualDamage, DamageEvent, EventInstigator ? EventInstigator->GetPawn() : NULL, DamageCauser);
 		}
 
 		MakeNoise(1.0f, EventInstigator ? EventInstigator->GetPawn() : this);
@@ -605,12 +529,12 @@ float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageE
 
 void AFPSCharacter::Suicide()
 {
-	KilledBy(this);
+	KillBy(this);
 }
 
-void AFPSCharacter::KilledBy(class APawn* EventInstigator)
+void AFPSCharacter::KillBy(APawn* EventInstigator)
 {
-	if (Role == ROLE_Authority && !bIsDying)
+	if (!bIsDying)
 	{
 		AController* Killer = NULL;
 		if (EventInstigator != NULL)
@@ -623,7 +547,7 @@ void AFPSCharacter::KilledBy(class APawn* EventInstigator)
 	}
 }
 
-bool AFPSCharacter::Die(float KillingDamage, struct FDamageEvent const& DamageEvent, class AController* Killer, class AActor* DamageCauser)
+bool AFPSCharacter::Die(float KillingDamage, struct FDamageEvent const& DamageEvent, AController* Killer, AActor* DamageCauser)
 {
 	if (!CanDie(KillingDamage, DamageEvent, Killer, DamageCauser))
 	{
@@ -639,10 +563,7 @@ bool AFPSCharacter::Die(float KillingDamage, struct FDamageEvent const& DamageEv
 	AController* const KilledPlayer = (Controller != NULL) ? Controller : Cast<AController>(GetOwner());
 	GetWorld()->GetAuthGameMode<AFPSGameMode>()->Killed(Killer, KilledPlayer, this, DamageType);
 
-	NetUpdateFrequency = GetDefault<AFPSCharacter>()->NetUpdateFrequency;
-	GetCharacterMovement()->ForceReplicationUpdate();
-
-	OnDeath(KillingDamage, DamageEvent, Killer ? Killer->GetPawn() : NULL, DamageCauser);
+	DieActual(KillingDamage, DamageEvent, Killer ? Killer->GetPawn() : NULL, DamageCauser);
 	return true;
 }
 
@@ -650,7 +571,6 @@ bool AFPSCharacter::CanDie(float KillingDamage, FDamageEvent const& DamageEvent,
 {
 	if (bIsDying										// already dying
 		|| IsPendingKill()								// already destroyed
-		|| Role != ROLE_Authority						// not authority
 		|| GetWorld()->GetAuthGameMode() == NULL
 		|| GetWorld()->GetAuthGameMode()->GetMatchState() == MatchState::LeavingMap)	// level transition occurring
 	{
@@ -660,52 +580,22 @@ bool AFPSCharacter::CanDie(float KillingDamage, FDamageEvent const& DamageEvent,
 	return true;
 }
 
-void AFPSCharacter::FellOutOfWorld(const class UDamageType& dmgType)
+void AFPSCharacter::FellOutOfWorld(const UDamageType& dmgType)
 {
 	Die(Health, FDamageEvent(dmgType.GetClass()), NULL, NULL);
 }
 
-void AFPSCharacter::OnRep_LastTakeHitInfo()
-{
-	if (LastTakeHitInfo.bKilled)
-	{
-		OnDeath(LastTakeHitInfo.ActualDamage, LastTakeHitInfo.GetDamageEvent(), LastTakeHitInfo.PawnInstigator.Get(), LastTakeHitInfo.DamageCauser.Get());
-	}
-	else
-	{
-		PlayHit(LastTakeHitInfo.ActualDamage, LastTakeHitInfo.GetDamageEvent(), LastTakeHitInfo.PawnInstigator.Get(), LastTakeHitInfo.DamageCauser.Get());
-	}
-}
-
-void AFPSCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& DamageEvent, class APawn* InstigatingPawn, class AActor* DamageCauser)
+void AFPSCharacter::DieActual(float KillingDamage, struct FDamageEvent const& DamageEvent, APawn* InstigatingPawn, AActor* DamageCauser)
 {
 	if (bIsDying)
 	{
 		return;
 	}
 
-	bReplicateMovement = false;
 	bTearOff = true;
 	bIsDying = true;
 
-	if (Role == ROLE_Authority)
-	{
-		ReplicateHit(KillingDamage, DamageEvent, InstigatingPawn, DamageCauser, true);
-
-		// play the force feedback effect on the client player controller
-		APlayerController* PC = Cast<APlayerController>(Controller);
-		if (PC && DamageEvent.DamageTypeClass)
-		{
-			UFPSDamageType *DamageType = Cast<UFPSDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
-			if (DamageType && DamageType->KilledForceFeedback)
-			{
-				PC->ClientPlayForceFeedback(DamageType->KilledForceFeedback, false, "Damage");
-			}
-		}
-	}
-
-	// cannot use IsLocallyControlled here, because even local client's controller may be NULL here
-	if (GetNetMode() != NM_DedicatedServer && DeathSound && Mesh1P && Mesh1P->IsVisible())
+	if (DeathSound && Mesh1P && Mesh1P->IsVisible())
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, DeathSound, GetActorLocation());
 	}
@@ -729,8 +619,6 @@ void AFPSCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Dama
 		RunLoopAC->Stop();
 	}
 
-
-
 	if (GetMesh())
 	{
 		static FName CollisionProfileName(TEXT("Ragdoll"));
@@ -746,11 +634,11 @@ void AFPSCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Dama
 	{
 		// Use a local timer handle as we don't need to store it for later but we don't need to look for something to clear
 		FTimerHandle TimerHandle;
-		GetWorldTimerManager().SetTimer(TimerHandle, this, &AFPSCharacter::SetRagdollPhysics, FMath::Min(0.1f, DeathAnimDuration), false);
+		GetWorldTimerManager().SetTimer(TimerHandle, this, &AFPSCharacter::EnableRagdollPhysics, FMath::Min(0.1f, DeathAnimDuration), false);
 	}
 	else
 	{
-		SetRagdollPhysics();
+		EnableRagdollPhysics();
 	}
 
 	// disable collisions on capsule
@@ -758,24 +646,8 @@ void AFPSCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Dama
 	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
 }
 
-void AFPSCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& DamageEvent, class APawn* PawnInstigator, class AActor* DamageCauser)
+void AFPSCharacter::Hit(float DamageTaken, struct FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser)
 {
-	if (Role == ROLE_Authority)
-	{
-		ReplicateHit(DamageTaken, DamageEvent, PawnInstigator, DamageCauser, false);
-
-		// play the force feedback effect on the client player controller
-		APlayerController* PC = Cast<APlayerController>(Controller);
-		if (PC && DamageEvent.DamageTypeClass)
-		{
-			UFPSDamageType *DamageType = Cast<UFPSDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
-			if (DamageType && DamageType->HitForceFeedback)
-			{
-				PC->ClientPlayForceFeedback(DamageType->HitForceFeedback, false, "Damage");
-			}
-		}
-	}
-
 	if (DamageTaken > 0.f)
 	{
 		ApplyDamageMomentum(DamageTaken, DamageEvent, PawnInstigator, DamageCauser);
@@ -788,7 +660,7 @@ void AFPSCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Damage
 		MyHUD->NotifyWeaponHit(DamageTaken, DamageEvent, PawnInstigator);
 	}
 
-	if (PawnInstigator && PawnInstigator != this && PawnInstigator->IsLocallyControlled())
+	if (PawnInstigator && PawnInstigator != this)
 	{
 		AFPSPlayerController* InstigatorPC = Cast<AFPSPlayerController>(PawnInstigator->Controller);
 		AGameHUD* InstigatorHUD = InstigatorPC ? Cast<AGameHUD>(InstigatorPC->GetHUD()) : NULL;
@@ -799,7 +671,7 @@ void AFPSCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Damage
 	}
 }
 
-void AFPSCharacter::SetRagdollPhysics()
+void AFPSCharacter::EnableRagdollPhysics()
 {
 	bool bInRagdoll = false;
 
@@ -839,33 +711,6 @@ void AFPSCharacter::SetRagdollPhysics()
 	}
 }
 
-void AFPSCharacter::ReplicateHit(float Damage, struct FDamageEvent const& DamageEvent, class APawn* InstigatingPawn, class AActor* DamageCauser, bool bKilled)
-{
-	const float TimeoutTime = GetWorld()->GetTimeSeconds() + 0.5f;
-
-	FDamageEvent const& LastDamageEvent = LastTakeHitInfo.GetDamageEvent();
-	if ((InstigatingPawn == LastTakeHitInfo.PawnInstigator.Get()) && (LastDamageEvent.DamageTypeClass == LastTakeHitInfo.DamageTypeClass) && (LastTakeHitTimeTimeout == TimeoutTime))
-	{
-		// same frame damage
-		if (bKilled && LastTakeHitInfo.bKilled)
-		{
-			// Redundant death take hit, just ignore it
-			return;
-		}
-
-		// otherwise, accumulate damage done this frame
-		Damage += LastTakeHitInfo.ActualDamage;
-	}
-
-	LastTakeHitInfo.ActualDamage = Damage;
-	LastTakeHitInfo.PawnInstigator = Cast<AFPSCharacter>(InstigatingPawn);
-	LastTakeHitInfo.DamageCauser = DamageCauser;
-	LastTakeHitInfo.SetDamageEvent(DamageEvent);
-	LastTakeHitInfo.bKilled = bKilled;
-	LastTakeHitInfo.EnsureReplication();
-
-	LastTakeHitTimeTimeout = TimeoutTime;
-}
 
 int32 AFPSCharacter::GetMaxHealth() const
 {
@@ -877,14 +722,12 @@ bool AFPSCharacter::IsAlive() const
 	return Health > 0;
 }
 
-
-
-class AFPSWeapon* AFPSCharacter::GetWeapon() const
+AFPSWeapon* AFPSCharacter::GetWeapon() const
 {
-	return CurrentWeapon;
+	return WeaponCurrent;
 }
 
-class AFPSWeapon* AFPSCharacter::FindWeapon(TSubclassOf<class AFPSWeapon> WeaponClass)
+AFPSWeapon* AFPSCharacter::FindWeapon(TSubclassOf<AFPSWeapon> WeaponClass)
 {
 	for (int32 i = 0; i < Inventory.Num(); i++)
 	{
@@ -954,13 +797,13 @@ void AFPSCharacter::EquipWeapon(AFPSWeapon* Weapon)
 {
 	if (Weapon)
 	{
-		SetCurrentWeapon(Weapon, CurrentWeapon);
+		SetCurrentWeapon(Weapon, WeaponCurrent);
 	}
 }
 
 void AFPSCharacter::UnEquipWeapon(AFPSWeapon* Weapon)
 {
-	if (Weapon && Weapon == CurrentWeapon)
+	if (Weapon && Weapon == WeaponCurrent)
 	{
 		SetCurrentWeapon(nullptr, Weapon);
 	}
@@ -974,9 +817,9 @@ void AFPSCharacter::SetCurrentWeapon(AFPSWeapon* NewWeapon, AFPSWeapon* LastWeap
 	{
 		LocalLastWeapon = LastWeapon;
 	}
-	else if (NewWeapon != CurrentWeapon)
+	else if (NewWeapon != WeaponCurrent)
 	{
-		LocalLastWeapon = CurrentWeapon;
+		LocalLastWeapon = WeaponCurrent;
 	}
 
 	// unequip previous
@@ -985,20 +828,15 @@ void AFPSCharacter::SetCurrentWeapon(AFPSWeapon* NewWeapon, AFPSWeapon* LastWeap
 		LocalLastWeapon->OnUnEquip();
 	}
 
-	CurrentWeapon = NewWeapon;
+	WeaponCurrent = NewWeapon;
 
 	// equip new one
 	if (NewWeapon)
 	{
-		NewWeapon->SetOwningPawn(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
+		NewWeapon->SetOwningCharacter(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
 
 		NewWeapon->OnEquip(LastWeapon);
 	}
-}
-
-void AFPSCharacter::OnRep_CurrentWeapon(class AFPSWeapon* LastWeapon)
-{
-	SetCurrentWeapon(CurrentWeapon, LastWeapon);
 }
 
 bool AFPSCharacter::IsRunning() const
@@ -1025,11 +863,6 @@ void AFPSCharacter::SetRunning(bool bNewRunning, bool bToggle)
 {
 	bWantsToRun = bNewRunning;
 	bWantsToRunToggled = bNewRunning && bToggle;
-
-	if (Role < ROLE_Authority)
-	{
-		ServerSetRunning(bNewRunning, bToggle);
-	}
 
 	UpdateRunSounds(bNewRunning);
 }
@@ -1071,9 +904,9 @@ void AFPSCharacter::StartWeaponFire()
 	if (!bWantsToFire)
 	{
 		bWantsToFire = true;
-		if (CurrentWeapon)
+		if (WeaponCurrent)
 		{
-			CurrentWeapon->StartFire();
+			WeaponCurrent->StartFire();
 		}
 	}
 }
@@ -1083,9 +916,9 @@ void AFPSCharacter::StopWeaponFire()
 	if (bWantsToFire)
 	{
 		bWantsToFire = false;
-		if (CurrentWeapon)
+		if (WeaponCurrent)
 		{
-			CurrentWeapon->StopFire();
+			WeaponCurrent->StopFire();
 		}
 	}
 }
@@ -1097,11 +930,6 @@ void AFPSCharacter::SetTargeting(bool bNewTargeting)
 	if (TargetingSound)
 	{
 		UGameplayStatics::SpawnSoundAttached(TargetingSound, GetRootComponent());
-	}
-
-	if (Role < ROLE_Authority)
-	{
-		ServerSetTargeting(bNewTargeting);
 	}
 }
 
@@ -1190,43 +1018,4 @@ void AFPSCharacter::TickViewUsable()
 			}
 		}
 	}
-}
-
-bool AFPSCharacter::ServerSetTargeting_Validate(bool bNewTargeting)
-{
-	return true;
-}
-
-void AFPSCharacter::ServerSetTargeting_Implementation(bool bNewTargeting)
-{
-	SetTargeting(bNewTargeting);
-}
-
-bool AFPSCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle)
-{
-	return true;
-}
-
-void AFPSCharacter::ServerSetRunning_Implementation(bool bNewRunning, bool bToggle)
-{
-	SetRunning(bNewRunning, bToggle);
-}
-
-void AFPSCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	// only to local owner: weapon change requests are locally instigated, other clients don't need it
-	DOREPLIFETIME_CONDITION(AFPSCharacter, Inventory, COND_OwnerOnly);
-
-	// everyone except local owner: flag change is locally instigated
-	DOREPLIFETIME_CONDITION(AFPSCharacter, bIsTargeting, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(AFPSCharacter, bWantsToRun, COND_SkipOwner);
-
-
-	DOREPLIFETIME_CONDITION(AFPSCharacter, LastTakeHitInfo, COND_Custom);
-	
-	DOREPLIFETIME(AFPSCharacter, CurrentWeapon);
-	DOREPLIFETIME(AFPSCharacter, Health);
-
 }

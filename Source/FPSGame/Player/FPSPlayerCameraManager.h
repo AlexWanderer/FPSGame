@@ -14,15 +14,13 @@ class AFPSPlayerCameraManager : public APlayerCameraManager
 	GENERATED_BODY()
 
 	AFPSPlayerCameraManager();
+
 public:
-	/** normal FOV */
+	
 	float NormalFOV;
 
-	/** targeting FOV */
 	float TargetingFOV;
 
-	/** After updating camera, inform pawn to update 1p mesh to match camera's location&rotation */
 	virtual void UpdateCamera(float DeltaTime) override;
-	
 	
 };
