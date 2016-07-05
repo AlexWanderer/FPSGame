@@ -22,19 +22,15 @@ AFPSAIController::AFPSAIController() : Super()
 
 void AFPSAIController::GameHasEnded(class AActor* EndGameFocus /*= NULL*/, bool bIsWinner /*= false*/)
 {
-	// Stop the behaviour tree/logic
+
 	BehaviorComp->StopTree();
 
-	// Stop any movement we already have
 	StopMovement();
 
-	// Cancel the repsawn timer
 	GetWorldTimerManager().ClearTimer(TimerHandle_Respawn);
 
-	// Clear any enemy
 	SetEnemy(NULL);
 
-	// Finally stop firing
 	AFPSBot* MyBot = Cast<AFPSBot>(GetPawn());
 	AFPSWeapon* MyWeapon = MyBot ? MyBot->GetWeapon() : NULL;
 	if (MyWeapon == NULL)
@@ -124,7 +120,7 @@ void AFPSAIController::SetEnemy(class APawn* InPawn)
 	}
 }
 
-class AFPSCharacter* AFPSAIController::GetEnemy() const
+AFPSCharacter* AFPSAIController::GetEnemy() const
 {
 	if (BlackboardComp)
 	{
@@ -237,13 +233,13 @@ bool AFPSAIController::HasWeaponLOSToEnemy(AActor* InEnemyActor, const bool bAny
 	AFPSBot* MyBot = Cast<AFPSBot>(GetPawn());
 
 	bool bHasLOS = false;
-	// Perform trace to retrieve hit info
+
 	FCollisionQueryParams TraceParams(LosTag, true, GetPawn());
 	TraceParams.bTraceAsyncScene = true;
 
 	TraceParams.bReturnPhysicalMaterial = true;
 	FVector StartLocation = MyBot->GetActorLocation();
-	StartLocation.Z += GetPawn()->BaseEyeHeight; //look from eyes
+	StartLocation.Z += GetPawn()->BaseEyeHeight;
 
 	FHitResult Hit(ForceInit);
 	const FVector EndLocation = InEnemyActor->GetActorLocation();
@@ -277,8 +273,5 @@ bool AFPSAIController::HasWeaponLOSToEnemy(AActor* InEnemyActor, const bool bAny
 			}
 		}
 	}
-
-
-
 	return bHasLOS;
 }

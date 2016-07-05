@@ -5,9 +5,6 @@
 #include "Player/FPSCharacter.h"
 #include "FPSBot.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class AFPSBot : public AFPSCharacter
 {
