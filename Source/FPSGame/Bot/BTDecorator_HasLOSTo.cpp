@@ -7,7 +7,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "Bot/FPSAIController.h"
 #include "Bot/FPSBot.h"
-#include "Online/FPSPlayerState.h"
+#include "Player/FPSPlayerState.h"
 
 UBTDecorator_HasLOSTo::UBTDecorator_HasLOSTo() : Super()
 {

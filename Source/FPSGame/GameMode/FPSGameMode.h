@@ -21,17 +21,8 @@ public:
 	/** Initialize the game. This is called before actors' PreInitializeComponents. */
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 
-	/** Accept or reject a player attempting to join the server.  Fails login if you set the ErrorMessage to a non-empty string. */
-	virtual void PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage) override;
-
-	/** starts match warmup */
-	virtual void PostLogin(APlayerController* NewPlayer) override;
-
 	/** hides the onscreen hud and restarts the map */
 	virtual void RestartGame() override;
-
-	/** Returns game session class to use */
-	virtual TSubclassOf<AGameSession> GetGameSessionClass() const override;
 
 	/** select best spawn point for player */
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
@@ -45,15 +36,21 @@ public:
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 
-	/** Handle for efficient management of DefaultTimer timer */
+	/** called before startmatch */
+	virtual void HandleMatchIsWaitingToStart() override;
+
+	/** starts new match */
+	virtual void HandleMatchHasStarted() override;
+
 	FTimerHandle TimerHandle_DefaultTimer;
 
-	/** update remaining time */
 	virtual void DefaultTimer();
+
 	/************************************************************************/
 	/* pickup                                                                     */
 	/************************************************************************/
 public:
+
 	UPROPERTY()
 	TArray<APickupActor*> LevelPickups;
 
@@ -61,12 +58,10 @@ public:
 	/* Spawnpoint                                                                */
 	/************************************************************************/
 protected:
-	/** check if player can use spawnpoint */
+
 	virtual bool IsSpawnpointAllowed(APlayerStart* SpawnPoint, AController* Player) const;
 
-	/** check if player should use spawnpoint */
 	virtual bool IsSpawnpointPreferred(APlayerStart* SpawnPoint, AController* Player) const;
-
 
 	/************************************************************************/
 	/* Match                                                                */
@@ -92,11 +87,7 @@ protected:
 	/** check if PlayerState is a winner */
 	virtual bool IsWinner(AFPSPlayerState* PlayerState) const;
 
-	/** called before startmatch */
-	virtual void HandleMatchIsWaitingToStart() override;
 
-	/** starts new match */
-	virtual void HandleMatchHasStarted() override;
 
 	/************************************************************************/
 	/* Bot                                                                  */
@@ -136,21 +127,18 @@ protected:
 	UPROPERTY(config)
 	float DamageSelfScale;
 
-	/** score for kill */
 	UPROPERTY(config)
 	int32 KillScore;
 
-	/** score for death */
 	UPROPERTY(config)
 	int32 DeathScore;
+
 public:
-	/** prevents friendly fire */
+
 	virtual float ModifyDamage(float Damage, AActor* DamagedActor, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const;
-	
-	/** can players damage each other? */
+
 	virtual bool CanDealDamage(AFPSPlayerState* DamageInstigator, AFPSPlayerState* DamagedPlayer) const;
 	
-	/** notify about kills */
 	virtual void Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 
 };

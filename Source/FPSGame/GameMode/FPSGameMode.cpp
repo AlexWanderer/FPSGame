@@ -4,14 +4,13 @@
 #include "FPSGameMode.h"
 #include "FPSGameInstance.h"
 #include "Player/FPSCharacter.h"
-#include "Online/FPSGameState.h"
-#include "Online/FPSPlayerState.h"
+#include "GameMode/FPSGameState.h"
+#include "Player/FPSPlayerState.h"
 #include "Player/FPSPlayerController.h"
 #include "Bot/FPSBot.h"
 #include "Gameplay/TeamStart.h"
 #include "Bot/FPSAIController.h"
 #include "UI/GameHUD.h"
-#include "Online/FPSGameSession.h"
 
 AFPSGameMode::AFPSGameMode() :Super()
 {
@@ -155,13 +154,11 @@ void AFPSGameMode::Killed(AController* Killer, AController* KilledPlayer, APawn*
 	if (KillerPlayerState && KillerPlayerState != VictimPlayerState)
 	{
 		KillerPlayerState->ScoreKill(VictimPlayerState, KillScore);
-		KillerPlayerState->InformAboutKill(KillerPlayerState, DamageType, VictimPlayerState);
 	}
 
 	if (VictimPlayerState)
 	{
 		VictimPlayerState->ScoreDeath(KillerPlayerState, DeathScore);
-		VictimPlayerState->BroadcastDeath(KillerPlayerState, DamageType, VictimPlayerState);
 	}
 }
 
@@ -175,40 +172,6 @@ void AFPSGameMode::InitGame(const FString& MapName, const FString& Options, FStr
 	if (GameInstance && Cast<UFPSGameInstance>(GameInstance)->GetIsOnline())
 	{
 		bPauseable = false;
-	}
-}
-
-void AFPSGameMode::PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
-{
-	AFPSGameState* const MyGameState = Cast<AFPSGameState>(GameState);
-	const bool bMatchIsOver = MyGameState && MyGameState->HasMatchEnded();
-	if (bMatchIsOver)
-	{
-		ErrorMessage = TEXT("Match is over!");
-	}
-	else
-	{
-		// GameSession can be NULL if the match is over
-		Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
-	}
-}
-
-void AFPSGameMode::PostLogin(APlayerController* NewPlayer)
-{
-	Super::PostLogin(NewPlayer);
-
-	// update spectator location for client
-	AFPSPlayerController* NewPC = Cast<AFPSPlayerController>(NewPlayer);
-	if (NewPC && NewPC->GetPawn() == NULL)
-	{
-		NewPC->ClientSetSpectatorCamera(NewPC->GetSpawnLocation(), NewPC->GetControlRotation());
-	}
-
-	// notify new player if match is already in progress
-	if (NewPC && IsMatchInProgress())
-	{
-		NewPC->ClientGameStarted();
-		NewPC->ClientStartOnlineGame();
 	}
 }
 
@@ -230,11 +193,6 @@ void AFPSGameMode::RestartGame()
 	}
 
 	Super::RestartGame();
-}
-
-TSubclassOf<AGameSession> AFPSGameMode::GetGameSessionClass() const
-{
-	return AFPSGameSession::StaticClass();
 }
 
 AActor* AFPSGameMode::ChoosePlayerStart_Implementation(AController* Player)
@@ -342,8 +300,6 @@ void AFPSGameMode::DefaultTimer()
 					{
 						AFPSPlayerState* PlayerState = Cast<AFPSPlayerState>((*It)->PlayerState);
 						const bool bIsWinner = IsWinner(PlayerState);
-
-						PlayerController->ClientSendRoundEndEvent(bIsWinner, MyGameState->ElapsedTime);
 					}
 				}
 			}
@@ -488,14 +444,4 @@ void AFPSGameMode::HandleMatchHasStarted()
 	AFPSGameState* const MyGameState = Cast<AFPSGameState>(GameState);
 	MyGameState->RemainingTime = RoundTime;
 	StartBots();
-
-	// notify players
-	for (FConstControllerIterator It = GetWorld()->GetControllerIterator(); It; ++It)
-	{
-		AFPSPlayerController* PC = Cast<AFPSPlayerController>(*It);
-		if (PC)
-		{
-			PC->ClientGameStarted();
-		}
-	}
 }

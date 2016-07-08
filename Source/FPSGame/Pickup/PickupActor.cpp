@@ -3,7 +3,7 @@
 #include "FPSGame.h"
 #include "PickupActor.h"
 #include "Player/FPSCharacter.h"
-#include "Online/FPSGameMode.h"
+#include "GameMode/FPSGameMode.h"
 
 APickupActor::APickupActor()
 {

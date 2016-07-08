@@ -53,17 +53,17 @@ void AFPSWeaponInstant::ProcessInstantHit(const FHitResult& Impact, const FVecto
 	{
 		if (Impact.GetActor())
 		{
-			NotifyHit(Impact, ShootDir, RandomSeed, ReticleSpread);
+			ApplyHit(Impact, ShootDir, RandomSeed, ReticleSpread);
 		}
 		else if (Impact.GetActor() == NULL)
 		{
 			if (Impact.bBlockingHit)
 			{
-				NotifyHit(Impact, ShootDir, RandomSeed, ReticleSpread);
+				ApplyHit(Impact, ShootDir, RandomSeed, ReticleSpread);
 			}
 			else
 			{
-				NotifyMiss(ShootDir, RandomSeed, ReticleSpread);
+				ApplyMiss(ShootDir, RandomSeed, ReticleSpread);
 			}
 		}
 	}
@@ -135,7 +135,7 @@ void AFPSWeaponInstant::DealDamage(const FHitResult& Impact, const FVector& Shoo
 	Impact.GetActor()->TakeDamage(PointDmg.Damage, PointDmg, MyPawn->Controller, this);
 }
 
-void AFPSWeaponInstant::NotifyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread)
+void AFPSWeaponInstant::ApplyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread)
 {
 	const float WeaponAngleDot = FMath::Abs(FMath::Sin(ReticleSpread * PI / 180.f));
 
@@ -205,7 +205,7 @@ void AFPSWeaponInstant::NotifyHit(const FHitResult Impact, FVector ShootDir, int
 }
 
 
-void AFPSWeaponInstant::NotifyMiss(FVector ShootDir, int32 RandomSeed, float ReticleSpread)
+void AFPSWeaponInstant::ApplyMiss(FVector ShootDir, int32 RandomSeed, float ReticleSpread)
 {
 	const FVector Origin = GetMuzzleLocation();
 

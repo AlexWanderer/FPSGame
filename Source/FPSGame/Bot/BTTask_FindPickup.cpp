@@ -4,7 +4,7 @@
 #include "BTTask_FindPickup.h"
 #include "Bot/FPSAIController.h"
 #include "Bot/FPSBot.h"
-#include "Online/FPSGameMode.h"
+#include "GameMode/FPSGameMode.h"
 #include "Pickup/PickupAmmo.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"

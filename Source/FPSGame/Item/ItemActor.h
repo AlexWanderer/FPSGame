@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "Gameplay/UsableActor.h"
 #include "ItemActor.generated.h"
 
 class AUsableActor;

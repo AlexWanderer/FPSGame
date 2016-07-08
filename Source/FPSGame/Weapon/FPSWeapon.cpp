@@ -5,7 +5,7 @@
 #include "Player/FPSCharacter.h"
 #include "Player/FPSPlayerController.h"
 #include "Bot/FPSAIController.h"
-#include "Online/FPSPlayerState.h"
+#include "Player/FPSPlayerState.h"
 #include "UI/GameHUD.h"
 
 // Sets default values

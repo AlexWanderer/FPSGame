@@ -5,15 +5,12 @@
 #include "Player/FPSPlayerCameraManager.h"
 #include "UI/GameHUD.h"
 #include "Player/FPSCharacter.h"
-#include "Player/PersistentUser.h"
-#include "Player/FPSLocalPlayer.h"
-#include "Online/FPSPlayerState.h"
+#include "Player/FPSPlayerState.h"
 #include "Weapon/FPSWeapon.h"
 
 AFPSPlayerController::AFPSPlayerController():Super()
 {
 	PlayerCameraManagerClass = AFPSPlayerCameraManager::StaticClass();
-	bGameEndedFrame = false;
 	LastDeathLocation = FVector::ZeroVector;
 	bAllowGameActions = true;
 }
@@ -33,21 +30,15 @@ void AFPSPlayerController::TickActor(float DeltaTime, enum ELevelTick TickType, 
 {
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 
-	// Is this the first frame after the game has ended
-	if (bGameEndedFrame)
+	// ONLY PUT CODE HERE WHICH YOU DON'T WANT TO BE DONE DUE TO HOST LOSS
+
+	// Do we need to show the end of round scoreboard?
+	if (IsPrimaryPlayer())
 	{
-		bGameEndedFrame = false;
-
-		// ONLY PUT CODE HERE WHICH YOU DON'T WANT TO BE DONE DUE TO HOST LOSS
-
-		// Do we need to show the end of round scoreboard?
-		if (IsPrimaryPlayer())
+		AGameHUD* TheHUD = GetGameHUD();
+		if (TheHUD)
 		{
-			AGameHUD* TheHUD = GetGameHUD();
-			if (TheHUD)
-			{
-				TheHUD->ShowScoreboard(true, true);
-			}
+			TheHUD->ShowScoreboard(true, true);
 		}
 	}
 }
@@ -55,12 +46,6 @@ void AFPSPlayerController::TickActor(float DeltaTime, enum ELevelTick TickType, 
 AGameHUD* AFPSPlayerController::GetGameHUD() const
 {
 	return Cast<AGameHUD>(GetHUD());
-}
-
-class UPersistentUser* AFPSPlayerController::GetPersistentUser() const
-{
-	UFPSLocalPlayer* const TheLocalPlayer = Cast<UFPSLocalPlayer>(Player);
-	return TheLocalPlayer ? TheLocalPlayer->GetPersistentUser() : nullptr;
 }
 
 bool AFPSPlayerController::FindDeathCameraSpot(FVector& CameraLocation, FRotator& CameraRotation)
@@ -144,18 +129,6 @@ bool AFPSPlayerController::IsLookInputIgnored() const
 	}
 }
 
-void AFPSPlayerController::InitInputSystem()
-{
-	Super::InitInputSystem();
-
-	UPersistentUser* PersistentUser = GetPersistentUser();
-	if (PersistentUser)
-	{
-		PersistentUser->TellInputAboutKeybindings();
-	}
-}
-
-
 void AFPSPlayerController::FailedToSpawnPawn()
 {
 	if (StateName == NAME_Inactive)
@@ -173,8 +146,6 @@ void AFPSPlayerController::PawnPendingDestroy(APawn* Pawn)
 	FindDeathCameraSpot(CameraLocation, CameraRotation);
 
 	Super::PawnPendingDestroy(Pawn);
-
-	ClientSetSpectatorCamera(CameraLocation, CameraRotation);
 }
 
 bool AFPSPlayerController::HasInfiniteClip() const
@@ -195,24 +166,4 @@ bool AFPSPlayerController::HasHealthRegen() const
 bool AFPSPlayerController::HasGodMode() const
 {
 	return false;
-}
-
-void AFPSPlayerController::ClientSendRoundEndEvent_Implementation(bool bIsWinner, int32 ExpendedTimeInSeconds)
-{
-
-}
-
-void AFPSPlayerController::ClientSetSpectatorCamera_Implementation(FVector CameraLocation, FRotator CameraRotation)
-{
-
-}
-
-void AFPSPlayerController::ClientGameStarted_Implementation()
-{
-
-}
-
-void AFPSPlayerController::ClientStartOnlineGame_Implementation()
-{
-
 }

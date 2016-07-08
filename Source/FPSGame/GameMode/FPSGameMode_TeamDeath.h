@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Online/FPSGameMode.h"
+#include "GameMode/FPSGameMode.h"
 #include "FPSGameMode_TeamDeath.generated.h"
 
 class AFPSPlayerState;

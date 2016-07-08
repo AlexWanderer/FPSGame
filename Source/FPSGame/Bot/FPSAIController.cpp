@@ -4,7 +4,7 @@
 #include "FPSAIController.h"
 #include "Weapon/FPSWeapon.h"
 #include "Bot/FPSBot.h"
-#include "Online/FPSPlayerState.h"
+#include "Player/FPSPlayerState.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"

@@ -2,8 +2,8 @@
 
 #include "FPSGame.h"
 #include "FPSGameMode_TeamDeath.h"
-#include "Online/FPSPlayerState.h"
-#include "Online/FPSGameState.h"
+#include "Player/FPSPlayerState.h"
+#include "GameMode/FPSGameState.h"
 #include "Bot/FPSAIController.h"
 #include "Gameplay/TeamStart.h"
 

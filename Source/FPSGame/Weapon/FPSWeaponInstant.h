@@ -118,9 +118,9 @@ class AFPSWeaponInstant : public AFPSWeapon
 
 	void ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread);
 	
-	void NotifyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
+	void ApplyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 	
-	void NotifyMiss(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
+	void ApplyMiss(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 	
 	void ProcessInstantHitConfirmed(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread);
 
