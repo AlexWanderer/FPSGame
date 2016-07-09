@@ -20,11 +20,29 @@ public:
 
 	virtual void OnUsed(APawn* UserPawn);
 
-	UPROPERTY(VisibleAnywhere, Category = "Mesh")
-	USkeletalMeshComponent* MeshComp;
+	UFUNCTION(BlueprintImplementableEvent, Category = UsableActor)
+	virtual void ReceiveUsed(APawn* UserPawn);
 
 	UPROPERTY(VisibleAnywhere, Category = "Mesh")
-	UBoxComponent* TraceBox;
+	USkeletalMeshComponent* SkeletalMeshComp;
 
-	FORCEINLINE USkeletalMeshComponent* GetMeshComponent() const { return MeshComp; }
+	UPROPERTY(VisibleAnywhere, Category = "Mesh")
+	UStaticMeshComponent* StaticMeshComp;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Mesh")
+	bool bStaticMesh = false;
+
+
+	FORCEINLINE UMeshComponent* GetMeshComponent() const
+	{
+		if (bStaticMesh)
+		{
+			return StaticMeshComp;
+		}
+		else
+		{
+			return SkeletalMeshComp;
+		}
+		
+	}
 };

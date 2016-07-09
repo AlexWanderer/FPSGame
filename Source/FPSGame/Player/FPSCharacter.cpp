@@ -351,7 +351,8 @@ void AFPSCharacter::OnDrop()
 
 		if (NewWeaponItem)
 		{
-			USkeletalMeshComponent* MeshComp = NewWeaponItem->GetMeshComponent();
+			
+			UMeshComponent* MeshComp = NewWeaponItem->GetMeshComponent();
 			if (MeshComp)
 			{
 				MeshComp->SetSimulatePhysics(true);

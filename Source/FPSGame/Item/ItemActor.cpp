@@ -7,7 +7,7 @@
 
 AItemActor::AItemActor()
 {
-	MeshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	//MeshComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 
 }
 
@@ -22,11 +22,11 @@ void AItemActor::OnUsed(APawn* UserPawn)
 
 void AItemActor::OnPickup()
 {
-	if (MeshComp)
+	if (GetMeshComponent())
 	{
-		MeshComp->SetVisibility(false);
-		MeshComp->SetSimulatePhysics(false);
-		MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetMeshComponent()->SetVisibility(false);
+		GetMeshComponent()->SetSimulatePhysics(false);
+		GetMeshComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 

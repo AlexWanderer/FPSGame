@@ -8,28 +8,52 @@
 AUsableActor::AUsableActor() : Super()
 {
 
-	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
-	RootComponent = MeshComp;
+	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	RootComponent = SkeletalMeshComp;
+	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Meshs"));
+	StaticMeshComp->AttachParent = RootComponent;
+	
+
 }
 
 void AUsableActor::OnBeginFocus()
 {
-	if (MeshComp)
+	if (bStaticMesh)
 	{
-		MeshComp->SetRenderCustomDepth(true);
+		if (StaticMeshComp)
+		{
+			StaticMeshComp->SetRenderCustomDepth(true);
+		}
+	}
+	else
+	{
+		if (SkeletalMeshComp)
+		{
+			SkeletalMeshComp->SetRenderCustomDepth(true);
+		}
 	}
 }
 
 void AUsableActor::OnEndFocus()
 {
-	if (MeshComp)
+	if (bStaticMesh)
 	{
-		MeshComp->SetRenderCustomDepth(false);
+		if (StaticMeshComp)
+		{
+			StaticMeshComp->SetRenderCustomDepth(false);
+		}
+	}
+	else
+	{
+		if (SkeletalMeshComp)
+		{
+			SkeletalMeshComp->SetRenderCustomDepth(false);
+		}
 	}
 }
 
 void AUsableActor::OnUsed(APawn* UserPawn)
 {
-
+	ReceiveUsed(UserPawn);
 }
 
