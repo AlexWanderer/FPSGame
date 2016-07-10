@@ -3,23 +3,41 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "FPSTypes.h"
 #include "FPSExplosionEffect.generated.h"
 
-UCLASS()
+UCLASS(Abstract, Blueprintable)
 class AFPSExplosionEffect : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
 	AFPSExplosionEffect();
 
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
-	// Called every frame
-	virtual void Tick( float DeltaSeconds ) override;
+	virtual void Tick(float DeltaSeconds) override;
 
-	
-	
+	FName ExplosionLightComponentName;
+
+public:
+
+	UPROPERTY(EditDefaultsOnly, Category = Effect)
+	UParticleSystem* ExplosionFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = Effect)
+	UPointLightComponent* ExplosionLight;
+
+	UPROPERTY(EditDefaultsOnly, Category = Effect)
+	float ExplosionLightFadeOut;
+
+	UPROPERTY(EditDefaultsOnly, Category = Effect)
+	USoundCue* ExplosionSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = Effect)
+	FDecalData Decal;
+
+	UPROPERTY(BlueprintReadOnly, Category = Surface)
+	FHitResult SurfaceHit;
+
+	FORCEINLINE UPointLightComponent* GetExplosionLight() const { return ExplosionLight; }
+
 };

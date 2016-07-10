@@ -74,7 +74,7 @@ void AFPSWeapon::Destroyed()
 	StopSimulatingWeaponFire();
 }
 
-FVector AFPSWeapon::GetAdjustedAim() const
+FVector AFPSWeapon::GetAdjustedAimDirection() const
 {
 	AFPSPlayerController* const PlayerController = Instigator ? Cast<AFPSPlayerController>(Instigator->Controller) : NULL;
 	FVector FinalAim = FVector::ZeroVector;
@@ -122,7 +122,7 @@ FVector AFPSWeapon::GetCameraAim() const
 	return FinalAim;
 }
 
-FVector AFPSWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
+FVector AFPSWeapon::GetShootStartLocation(const FVector& AimDir) const
 {
 	AFPSPlayerController* PC = MyPawn ? Cast<AFPSPlayerController>(MyPawn->Controller) : NULL;
 	AFPSAIController* AIPC = MyPawn ? Cast<AFPSAIController>(MyPawn->Controller) : NULL;

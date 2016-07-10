@@ -7,7 +7,7 @@
 AFPSPlayerCameraManager::AFPSPlayerCameraManager() :Super()
 {
 	NormalFOV = 90.0f;
-	TargetingFOV = 40.f;
+	TargetingFOV = 60.f;
 	ViewPitchMin = -87.0f;
 	ViewPitchMax = 87.0f;
 	bAlwaysApplyModifiers = true;

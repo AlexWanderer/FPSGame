@@ -1,6 +1,6 @@
 #pragma once
 
-//#include "FPSTypes.generated.h"
+#include "FPSTypes.generated.h"
 
 enum class EShooterMatchState
 {
@@ -9,3 +9,25 @@ enum class EShooterMatchState
 	Won,
 	Lost,
 }; 
+
+
+USTRUCT()
+struct FDecalData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = Decal)
+	UMaterial* DecalMaterial;
+
+	UPROPERTY(EditDefaultsOnly, Category = Decal)
+	float DecalSize;
+
+	UPROPERTY(EditDefaultsOnly, Category = Decal)
+	float LifeSpan;
+
+	FDecalData()
+		: DecalSize(256.f)
+		, LifeSpan(10.f)
+	{
+	}
+};

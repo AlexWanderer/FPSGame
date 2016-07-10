@@ -28,8 +28,8 @@ void AFPSWeaponInstant::FireWeapon()
 	const float CurrentSpread = GetCurrentSpread();
 	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
 
-	const FVector AimDir = GetAdjustedAim();
-	const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
+	const FVector AimDir = GetAdjustedAimDirection();
+	const FVector StartTrace = GetShootStartLocation(AimDir);
 	const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
 	const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
 

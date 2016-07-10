@@ -118,11 +118,13 @@ public:
 	/* Calculate                                                            */
 	/************************************************************************/
 
-	virtual FVector GetAdjustedAim() const;
-
 	FVector GetCameraAim() const;
 
-	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
+	//取当前角色瞄准的方向
+	virtual FVector GetAdjustedAimDirection() const;
+
+	//取当前射击的起始位置
+	FVector GetShootStartLocation(const FVector& AimDir) const;
 
 	//取枪口的位置
 	FVector GetMuzzleLocation() const;
@@ -377,5 +379,5 @@ public:
 	int32 GetMaxAmmo() const;
 
 	//取当前的弹药类型
-	FORCEINLINE virtual  EAmmoType GetAmmoType() const { return EAmmoType::EBullet; }
+	FORCEINLINE virtual EAmmoType GetAmmoType() const { return EAmmoType::EBullet; }
 };

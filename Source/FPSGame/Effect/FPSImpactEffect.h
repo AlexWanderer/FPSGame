@@ -3,29 +3,8 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "FPSTypes.h"
 #include "FPSImpactEffect.generated.h"
-
-
-USTRUCT()
-struct FDecalData
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category = Decal)
-	UMaterial* DecalMaterial;
-
-	UPROPERTY(EditDefaultsOnly, Category = Decal)
-	float DecalSize;
-
-	UPROPERTY(EditDefaultsOnly, Category = Decal)
-	float LifeSpan;
-
-	FDecalData()
-		: DecalSize(256.f)
-		, LifeSpan(10.f)
-	{
-	}
-};
 
 UCLASS(Abstract, Blueprintable)
 class AFPSImpactEffect : public AActor
