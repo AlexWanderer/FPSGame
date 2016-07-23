@@ -363,6 +363,16 @@ void AFPSCharacter::OnDrop()
 
 		RemoveWeapon(WeaponCurrent);
 		UnEquipWeapon(WeaponCurrent);
+
+		if (Inventory.Num() > 0)
+		{
+			SetCurrentWeapon(Inventory[0]);
+		}
+
+		if (Inventory.Num() == 0)
+		{
+			SetCurrentWeapon(nullptr);
+		}
 	}
 }
 

@@ -21,7 +21,8 @@ AFPSGameMode::AFPSGameMode() :Super()
 	static ConstructorHelpers::FClassFinder<APawn> BotPawnFinder(TEXT("/Game/Blueprints/Bot/Bot_Shooter"));
 	BotPawnClass = BotPawnFinder.Class;
 
-	HUDClass = AGameHUD::StaticClass();
+	static ConstructorHelpers::FClassFinder<AHUD> HUDFinder(TEXT("/Game/Blueprints/HUD/InGameHUD"));
+	HUDClass = HUDFinder.Class;
 
 	PlayerControllerClass = AFPSPlayerController::StaticClass();
 	PlayerStateClass = AFPSPlayerState::StaticClass();

@@ -66,6 +66,7 @@ protected:
 	/************************************************************************/
 	/* Match                                                                */
 	/************************************************************************/
+
 	UPROPERTY(config)
 	int32 TimeBetweenMatches;
 
@@ -86,7 +87,6 @@ protected:
 
 	/** check if PlayerState is a winner */
 	virtual bool IsWinner(AFPSPlayerState* PlayerState) const;
-
 
 
 	/************************************************************************/
