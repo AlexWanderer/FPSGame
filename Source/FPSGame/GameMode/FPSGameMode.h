@@ -42,10 +42,6 @@ public:
 	/** starts new match */
 	virtual void HandleMatchHasStarted() override;
 
-	FTimerHandle TimerHandle_DefaultTimer;
-
-	virtual void DefaultTimer();
-
 	/************************************************************************/
 	/* pickup                                                                     */
 	/************************************************************************/
@@ -77,17 +73,19 @@ protected:
 	/** match duration */
 	UPROPERTY(config)
 	int32 RoundTime;
+
+	FTimerHandle TimerHandle_DefaultTimer;
 	
-	/** finish current match and lock players */
 	UFUNCTION(exec)
 	void FinishMatch();
 
-	/** check who won */
+	bool CheckMatchEnd();
+
 	virtual void DetermineMatchWinner();
 
-	/** check if PlayerState is a winner */
 	virtual bool IsWinner(AFPSPlayerState* PlayerState) const;
 
+	virtual void DefaultTimer();
 
 	/************************************************************************/
 	/* Bot                                                                  */

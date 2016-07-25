@@ -6,14 +6,15 @@
 
 
 
+void AGameHUD::SetMatchState(EShooterMatchState NewState)
+{
+	CurrentMatchState = NewState;
+	ReceiveMatchStateChanged(CurrentMatchState);
+}
+
 bool AGameHUD::ShowScoreboard(bool bEnable, bool bFocus /*= false*/)
 {
 	return false;
-}
-
-void AGameHUD::SetMatchState(EShooterMatchState NewState)
-{
-
 }
 
 void AGameHUD::NotifyOutOfAmmo()

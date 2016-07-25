@@ -21,7 +21,7 @@ public:
 	virtual void OnUsed(APawn* UserPawn);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = UsableActor)
-	virtual void ReceiveUsed(APawn* UserPawn);
+	void ReceiveUsed(APawn* UserPawn);
 
 	UPROPERTY(VisibleAnywhere, Category = "Mesh")
 	USkeletalMeshComponent* SkeletalMeshComp;

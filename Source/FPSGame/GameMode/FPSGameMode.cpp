@@ -161,6 +161,8 @@ void AFPSGameMode::Killed(AController* Killer, AController* KilledPlayer, APawn*
 	{
 		VictimPlayerState->ScoreDeath(KillerPlayerState, DeathScore);
 	}
+
+	CheckMatchEnd();
 }
 
 void AFPSGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -397,6 +399,39 @@ void AFPSGameMode::FinishMatch()
 
 		// set up to restart the match
 		MyGameState->RemainingTime = TimeBetweenMatches;
+	}
+}
+
+bool AFPSGameMode::CheckMatchEnd()
+{
+	bool bHasAlivePlayer = false;
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; It++)
+	{
+		AFPSCharacter* MyPawn = Cast<AFPSCharacter>(*It);
+		if (MyPawn && MyPawn->IsAlive())
+		{
+			AFPSPlayerState* PS = Cast<AFPSPlayerState>(MyPawn->PlayerState);
+			if (PS)
+			{
+				if (!PS->bIsABot)
+				{
+					/* Found one player that is still alive, game will continue */
+					bHasAlivePlayer = true;
+					break;
+				}
+			}
+		}
+	}
+
+	/* End game is all players died */
+	if (!bHasAlivePlayer)
+	{
+		FinishMatch();
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }
 

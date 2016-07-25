@@ -129,6 +129,32 @@ bool AFPSPlayerController::IsLookInputIgnored() const
 	}
 }
 
+void AFPSPlayerController::ClientGameEnded_Implementation(AActor* EndGameFocus, bool bIsWinner)
+{
+	Super::ClientGameEnded_Implementation(EndGameFocus, bIsWinner);
+
+	// Disable controls now the game has ended
+	SetIgnoreMoveInput(true);
+
+	bAllowGameActions = false;
+
+	// Make sure that we still have valid view target
+	SetViewTarget(GetPawn());
+
+	AGameHUD* ShooterHUD = GetGameHUD();
+	if (ShooterHUD)
+	{
+		ShooterHUD->SetMatchState(bIsWinner ? EShooterMatchState::Won : EShooterMatchState::Lost);
+	}
+}
+
+void AFPSPlayerController::ClientReset_Implementation()
+{
+	AActor* StartSpot = UGameplayStatics::GetGameMode(GetWorld())->FindPlayerStart(this);
+	UGameplayStatics::GetGameMode(GetWorld())->RestartPlayer(this);
+	//GetCharacter()->TeleportTo(StartSpot->GetActorLocation(), StartSpot->GetActorRotation());
+}
+
 void AFPSPlayerController::FailedToSpawnPawn()
 {
 	if (StateName == NAME_Inactive)

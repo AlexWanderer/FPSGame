@@ -12,6 +12,17 @@ class FPSGAME_API AGameHUD : public AHUD
 {
 	GENERATED_BODY()
 public:
+
+	void SetMatchState(EShooterMatchState NewState);
+	EShooterMatchState GetMatchState() const { return CurrentMatchState; }
+	EShooterMatchState CurrentMatchState;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = GameHUD)
+	void ReceiveMatchStateChanged(EShooterMatchState MatchState);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = GameHUD)
+	void ReceiveInventoryChanged(const TArray<AFPSWeapon*>& Inventory);
+
 	/**
 	* Toggles in game scoreboard.
 	* Note:Will not display if the game menu is visible.
@@ -21,13 +32,6 @@ public:
 	* @return	true, if the scoreboard visibility changed
 	*/
 	bool ShowScoreboard(bool bEnable, bool bFocus = false);
-	
-	/**
-	* Set state of current match.
-	*
-	* @param	NewState	The new match state.
-	*/
-	void SetMatchState(EShooterMatchState NewState);
 
 	/** Sent from ShooterWeapon, shows NO AMMO text. */
 	void NotifyOutOfAmmo();

@@ -31,6 +31,9 @@ class FPSGAME_API AFPSPlayerController : public APlayerController
 
 	virtual bool IsLookInputIgnored() const override;
 
+	virtual void ClientGameEnded_Implementation(AActor* EndGameFocus, bool bIsWinner) override;
+	
+	virtual void ClientReset_Implementation() override;
 
 	/************************************************************************/
 	/* input							                                     */

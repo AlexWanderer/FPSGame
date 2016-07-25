@@ -21,4 +21,7 @@ public:
 
 	virtual void OnPickup();
 
+	UPROPERTY(EditDefaultsOnly, Category = "Config")
+	UTexture2D* Icon;
+
 };

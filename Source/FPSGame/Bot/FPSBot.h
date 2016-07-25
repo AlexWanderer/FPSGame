@@ -13,11 +13,15 @@ class AFPSBot : public AFPSCharacter
 	AFPSBot();
 
 public:
+	virtual void BeginPlay() override;
+
+	virtual void FaceRotation(FRotator NewRotation, float DeltaTime = 0.f) override;
+
+
 	UPROPERTY(EditAnywhere, Category = Behavior)
 	class UBehaviorTree* BotBehavior;
 
 	virtual bool IsFirstPerson() const override;
 
-	virtual void FaceRotation(FRotator NewRotation, float DeltaTime = 0.f) override;
 	
 };

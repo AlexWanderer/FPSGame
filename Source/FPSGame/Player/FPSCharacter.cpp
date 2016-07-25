@@ -792,6 +792,14 @@ void AFPSCharacter::AddWeapon(AFPSWeapon* Weapon)
 	{
 		Weapon->OnEnterInventory(this);
 		Inventory.AddUnique(Weapon);
+
+		AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
+		AGameHUD* MyHUD = MyPC ? Cast<AGameHUD>(MyPC->GetHUD()) : NULL;
+		if (MyHUD)
+		{
+			MyHUD->ReceiveInventoryChanged(Inventory);
+		}
+
 	}
 }
 
