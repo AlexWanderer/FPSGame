@@ -21,6 +21,10 @@ public:
 
 	virtual void OnPickup();
 
+	UFUNCTION(BlueprintCallable, Category = ItemActor)
+	UTexture2D* GetIcon() const;
+
+
 	UPROPERTY(EditDefaultsOnly, Category = "Config")
 	UTexture2D* Icon;
 

@@ -30,3 +30,8 @@ void AItemActor::OnPickup()
 	}
 }
 
+UTexture2D* AItemActor::GetIcon() const
+{
+	return Icon;
+}
+

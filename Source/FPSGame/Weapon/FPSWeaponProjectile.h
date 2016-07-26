@@ -55,6 +55,6 @@ protected:
 
 	FORCEINLINE virtual EAmmoType GetAmmoType() const override { return EAmmoType::ERocket; }
 
-	UPROPERTY(EditDefaultsOnly, Category = WeaponConfig)
+	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FProjectileWeaponData ProjectileConfig;
 };

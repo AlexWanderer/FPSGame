@@ -88,7 +88,7 @@ Category:
 1. Sound
 2. Animation
 3. Effect
-4. WeaponConfig
+4. Config
 */
 
 class AItemWeapon;
@@ -108,11 +108,18 @@ public:
 	/************************************************************************/
 	/* Config                                                            */
 	/************************************************************************/
-	UPROPERTY(EditDefaultsOnly, Category = WeaponConfig)
+	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FWeaponData WeaponConfig;
 
-	UPROPERTY(EditDefaultsOnly, Category = WeaponConfig)
+	/************************************************************************/
+	/* Item                                                            */
+	/************************************************************************/
+
+	UPROPERTY(EditDefaultsOnly, Category = Config)
 	TSubclassOf<AItemWeapon> ItemClass;
+
+	UFUNCTION(BlueprintCallable, Category = FPSWeapon)
+	UTexture2D* GetItemIcon() const;
 
 	/************************************************************************/
 	/* Calculate                                                            */

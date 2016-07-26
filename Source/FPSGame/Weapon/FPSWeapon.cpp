@@ -7,6 +7,7 @@
 #include "Bot/FPSAIController.h"
 #include "Player/FPSPlayerState.h"
 #include "UI/GameHUD.h"
+#include "Item/ItemWeapon.h"
 
 // Sets default values
 AFPSWeapon::AFPSWeapon()
@@ -100,6 +101,17 @@ FVector AFPSWeapon::GetAdjustedAimDirection() const
 	}
 
 	return FinalAim;
+}
+
+UTexture2D* AFPSWeapon::GetItemIcon() const
+{
+	
+	UTexture2D* Icon = ItemClass->GetDefaultObject<AItemWeapon>()->GetIcon();
+	if (Icon)
+	{
+		return Icon;
+	}
+	return nullptr;
 }
 
 FVector AFPSWeapon::GetCameraAim() const

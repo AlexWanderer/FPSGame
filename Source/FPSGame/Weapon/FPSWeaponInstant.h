@@ -85,7 +85,7 @@ class AFPSWeaponInstant : public AFPSWeapon
 	AFPSWeaponInstant();
 
 	/** weapon config */
-	UPROPERTY(EditDefaultsOnly, Category = WeaponConfig)
+	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FInstantWeaponData InstantConfig;
 
 	/************************************************************************/
