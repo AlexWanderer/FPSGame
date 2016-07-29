@@ -56,8 +56,6 @@ void AFPSCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	Health = GetMaxHealth();
-	SpawnDefaultInventory();
-
 
 	// set initial mesh visibility (3rd person view)
 	UpdatePawnMeshes();
@@ -738,6 +736,16 @@ AFPSWeapon* AFPSCharacter::GetWeapon() const
 	return WeaponCurrent;
 }
 
+void AFPSCharacter::RefreshInventoryToHUD()
+{
+	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
+	AGameHUD* MyHUD = MyPC ? Cast<AGameHUD>(MyPC->GetHUD()) : NULL;
+	if (MyHUD)
+	{
+		MyHUD->ReceiveInventoryChanged(Inventory);
+	}
+}
+
 AFPSWeapon* AFPSCharacter::FindWeapon(TSubclassOf<AFPSWeapon> WeaponClass)
 {
 	for (int32 i = 0; i < Inventory.Num(); i++)
@@ -793,13 +801,7 @@ void AFPSCharacter::AddWeapon(AFPSWeapon* Weapon)
 		Weapon->OnEnterInventory(this);
 		Inventory.AddUnique(Weapon);
 
-		AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
-		AGameHUD* MyHUD = MyPC ? Cast<AGameHUD>(MyPC->GetHUD()) : NULL;
-		if (MyHUD)
-		{
-			MyHUD->ReceiveInventoryChanged(Inventory);
-		}
-
+		RefreshInventoryToHUD();
 	}
 }
 
@@ -809,6 +811,8 @@ void AFPSCharacter::RemoveWeapon(AFPSWeapon* Weapon)
 	{
 		Weapon->OnLeaveInventory();
 		Inventory.RemoveSingle(Weapon);
+
+		RefreshInventoryToHUD();
 	}
 }
 
@@ -971,6 +975,13 @@ void AFPSCharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 	{
 		UseMesh->AnimScriptInstance->Montage_Stop(AnimMontage->BlendOutTime);
 	}
+}
+
+void AFPSCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	SpawnDefaultInventory();
 }
 
 void AFPSCharacter::StopAllAnimMontages()

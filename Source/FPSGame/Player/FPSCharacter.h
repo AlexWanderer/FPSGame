@@ -40,6 +40,8 @@ public:
 
 	virtual void StopAnimMontage(class UAnimMontage* AnimMontage) override;
 
+	virtual void PossessedBy(AController* NewController) override;
+
 
 	void OnCameraUpdate(const FVector& CameraLocation, const FRotator& CameraRotation);
 
@@ -162,6 +164,10 @@ public:
 	//取当前装备的武器
 	UFUNCTION(BlueprintCallable, Category = FPSCharacter)
 	AFPSWeapon* GetWeapon() const;
+
+	//刷新一次当前的Inventory到HUD
+	UFUNCTION(BlueprintCallable, Category = FPSCharacter)
+	void RefreshInventoryToHUD();
 
 	//从背包中找一把武器
 	AFPSWeapon* FindWeapon(TSubclassOf<AFPSWeapon> WeaponClass);

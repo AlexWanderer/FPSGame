@@ -21,7 +21,7 @@ public:
 	void ReceiveMatchStateChanged(EShooterMatchState MatchState);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = GameHUD)
-	void ReceiveInventoryChanged(const TArray<AFPSWeapon*>& Inventory);
+	void ReceiveInventoryChanged(UPARAM(ref) const TArray<AFPSWeapon*>& Inventory);
 
 	/**
 	* Toggles in game scoreboard.
