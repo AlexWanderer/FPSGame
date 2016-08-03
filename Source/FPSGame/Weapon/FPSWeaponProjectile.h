@@ -42,14 +42,17 @@ class AFPSWeaponProjectile : public AFPSWeapon
 {
 	GENERATED_BODY()
 
-	AFPSWeaponProjectile();
 public:
+
+	AFPSWeaponProjectile();
 
 	void ApplyWeaponConfig(FProjectileWeaponData& Data);
 
 protected:
 
 	virtual void FireWeapon() override;
+
+	virtual void OnBurstFinished() override;
 
 	void SpawnProjectile(FVector Origin, FVector ShootDir);
 

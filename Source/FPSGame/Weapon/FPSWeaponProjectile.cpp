@@ -66,6 +66,15 @@ void AFPSWeaponProjectile::FireWeapon()
 	}
 
 	SpawnProjectile(Origin, ShootDir);
+
+	IncreaseSpread();
+}
+
+void AFPSWeaponProjectile::OnBurstFinished()
+{
+	Super::OnBurstFinished();
+
+	ResetSpread();
 }
 
 void AFPSWeaponProjectile::SpawnProjectile(FVector Origin, FVector ShootDir)

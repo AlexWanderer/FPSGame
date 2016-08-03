@@ -69,6 +69,22 @@ struct FWeaponData
 	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
 	float NoAnimReloadDuration;
 
+	//基本散射(degrees)
+	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
+	float WeaponSpread;
+
+	//瞄准时散射修正
+	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
+	float TargetingSpreadMod;
+
+	//开火时散射增量
+	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
+	float FiringSpreadIncrement;
+
+	//开火时散射最大值
+	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
+	float FiringSpreadMax;
+
 	FWeaponData()
 	{
 		bInfiniteAmmo = false;
@@ -78,6 +94,10 @@ struct FWeaponData
 		InitialClips = 4;
 		TimeBetweenShots = 0.2f;
 		NoAnimReloadDuration = 1.0f;
+		WeaponSpread = 5.0f;
+		TargetingSpreadMod = 0.25f;
+		FiringSpreadIncrement = 1.0f;
+		FiringSpreadMax = 10.0f;
 	}
 };
 
@@ -98,6 +118,7 @@ class AFPSWeapon : public AActor
 	GENERATED_BODY()
 	
 public:	
+
 	AFPSWeapon();
 
 	/** perform initial setup */
@@ -112,8 +133,30 @@ public:
 	FWeaponData WeaponConfig;
 
 	/************************************************************************/
+	/* Spread                                                            */
+	/************************************************************************/
+private:
+
+	float CurrentFiringSpread;
+
+public:
+
+	UFUNCTION(BlueprintCallable, Category = FPSWeapon)
+	float GetCurrentSpread() const;
+
+	UFUNCTION(BlueprintCallable, Category = FPSWeapon)
+	float GetSpreadMax() const;
+
+protected:
+
+	void IncreaseSpread();
+
+	void ResetSpread();
+
+	/************************************************************************/
 	/* Item                                                            */
 	/************************************************************************/
+public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Config)
 	TSubclassOf<AItemWeapon> ItemClass;

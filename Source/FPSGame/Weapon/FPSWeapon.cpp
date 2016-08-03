@@ -103,6 +103,32 @@ FVector AFPSWeapon::GetAdjustedAimDirection() const
 	return FinalAim;
 }
 
+float AFPSWeapon::GetCurrentSpread() const
+{
+	float FinalSpread = WeaponConfig.WeaponSpread + CurrentFiringSpread;
+	if (MyPawn && MyPawn->IsTargeting())
+	{
+		FinalSpread *= WeaponConfig.TargetingSpreadMod;
+	}
+
+	return FinalSpread;
+}
+
+float AFPSWeapon::GetSpreadMax() const
+{
+	return WeaponConfig.FiringSpreadMax;
+}
+
+void AFPSWeapon::IncreaseSpread()
+{
+	CurrentFiringSpread = FMath::Min(WeaponConfig.FiringSpreadMax, CurrentFiringSpread + WeaponConfig.FiringSpreadIncrement);
+}
+
+void AFPSWeapon::ResetSpread()
+{
+	CurrentFiringSpread = 0.0f;
+}
+
 UTexture2D* AFPSWeapon::GetItemIcon() const
 {
 	

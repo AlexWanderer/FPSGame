@@ -6,19 +6,6 @@
 
 AFPSWeaponInstant::AFPSWeaponInstant():Super()
 {
-	CurrentFiringSpread = 0.0f;
-}
-
-
-float AFPSWeaponInstant::GetCurrentSpread() const
-{
-	float FinalSpread = InstantConfig.WeaponSpread + CurrentFiringSpread;
-	if (MyPawn && MyPawn->IsTargeting())
-	{
-		FinalSpread *= InstantConfig.TargetingSpreadMod;
-	}
-
-	return FinalSpread;
 }
 
 void AFPSWeaponInstant::FireWeapon()
@@ -36,15 +23,14 @@ void AFPSWeaponInstant::FireWeapon()
 	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 	ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
 
-	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement);
-
+	IncreaseSpread();
 }
 
 void AFPSWeaponInstant::OnBurstFinished()
 {
 	Super::OnBurstFinished();
 
-	CurrentFiringSpread = 0.0f;
+	ResetSpread();
 }
 
 void AFPSWeaponInstant::ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread)
