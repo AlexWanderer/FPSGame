@@ -169,6 +169,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = FPSCharacter)
 	void RefreshInventoryToHUD();
 
+	//刷新当前武器到HUD
+	UFUNCTION(BlueprintCallable, Category = FPSCharacter)
+	void RefreshCurrentWeaponToHUD();
+
 	//从背包中找一把武器
 	AFPSWeapon* FindWeapon(TSubclassOf<AFPSWeapon> WeaponClass);
 

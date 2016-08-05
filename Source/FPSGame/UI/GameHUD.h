@@ -23,6 +23,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = GameHUD)
 	void ReceiveInventoryChanged(UPARAM(ref) const TArray<AFPSWeapon*>& Inventory);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = GameHUD)
+	void ReceiveCurrentWeaponChanged(int32 InventoryIndex);
+
 	/**
 	* Toggles in game scoreboard.
 	* Note:Will not display if the game menu is visible.

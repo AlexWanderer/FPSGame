@@ -234,6 +234,7 @@ void AFPSCharacter::OnNextWeapon()
 			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(WeaponCurrent);
 			AFPSWeapon* NextWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
 			EquipWeapon(NextWeapon);
+
 		}
 	}
 }
@@ -364,12 +365,12 @@ void AFPSCharacter::OnDrop()
 
 		if (Inventory.Num() > 0)
 		{
-			SetCurrentWeapon(Inventory[0]);
+			EquipWeapon(Inventory[0]);
 		}
 
 		if (Inventory.Num() == 0)
 		{
-			SetCurrentWeapon(nullptr);
+			EquipWeapon(nullptr);
 		}
 	}
 }
@@ -746,6 +747,27 @@ void AFPSCharacter::RefreshInventoryToHUD()
 	}
 }
 
+void AFPSCharacter::RefreshCurrentWeaponToHUD()
+{
+	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
+	AGameHUD* MyHUD = MyPC ? Cast<AGameHUD>(MyPC->GetHUD()) : NULL;
+
+	if (MyHUD)
+	{
+		if (WeaponCurrent)
+		{
+			int32 Index = Inventory.Find(WeaponCurrent);
+			MyHUD->ReceiveCurrentWeaponChanged(Index);
+		}
+		else
+		{
+			MyHUD->ReceiveCurrentWeaponChanged(INDEX_NONE);
+		}
+	}
+
+
+}
+
 AFPSWeapon* AFPSCharacter::FindWeapon(TSubclassOf<AFPSWeapon> WeaponClass)
 {
 	for (int32 i = 0; i < Inventory.Num(); i++)
@@ -821,6 +843,15 @@ void AFPSCharacter::EquipWeapon(AFPSWeapon* Weapon)
 	if (Weapon)
 	{
 		SetCurrentWeapon(Weapon, WeaponCurrent);
+
+		AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
+		AGameHUD* MyHUD = MyPC ? Cast<AGameHUD>(MyPC->GetHUD()) : NULL;
+		if (MyHUD)
+		{
+
+			int32 Index = Inventory.Find(Weapon);
+			MyHUD->ReceiveCurrentWeaponChanged(Index);
+		}
 	}
 }
 
@@ -829,6 +860,13 @@ void AFPSCharacter::UnEquipWeapon(AFPSWeapon* Weapon)
 	if (Weapon && Weapon == WeaponCurrent)
 	{
 		SetCurrentWeapon(nullptr, Weapon);
+	}
+
+	AFPSPlayerController* MyPC = Cast<AFPSPlayerController>(Controller);
+	AGameHUD* MyHUD = MyPC ? Cast<AGameHUD>(MyPC->GetHUD()) : NULL;
+	if (MyHUD)
+	{
+		MyHUD->ReceiveCurrentWeaponChanged(INDEX_NONE);
 	}
 }
 
