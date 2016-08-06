@@ -694,21 +694,18 @@ void AFPSWeapon::StopReload()
 
 void AFPSWeapon::ReloadActual()
 {
-	int32 ClipDelta = FMath::Min(WeaponConfig.AmmoPerClip - CurrentAmmoInClip, CurrentAmmo - CurrentAmmoInClip);
-
-	if (HasInfiniteClip())
+	//是否有足够的弹药可以换 或者 有无限弹夹
+	if ((CurrentAmmo - CurrentAmmoInClip) > 0 || HasInfiniteClip())
 	{
-		ClipDelta = WeaponConfig.AmmoPerClip - CurrentAmmoInClip;
-	}
-
-	if (ClipDelta > 0)
-	{
-		CurrentAmmoInClip += ClipDelta;
-	}
-
-	if (HasInfiniteClip())
-	{
-		CurrentAmmo = FMath::Max(CurrentAmmoInClip, CurrentAmmo);
+		if (HasInfiniteClip())
+		{
+			CurrentAmmoInClip = WeaponConfig.AmmoPerClip;
+		}
+		else
+		{
+			CurrentAmmo = CurrentAmmo - CurrentAmmoInClip;
+			CurrentAmmoInClip = FMath::Min(WeaponConfig.AmmoPerClip, CurrentAmmo);
+		}
 	}
 }
 
@@ -796,6 +793,12 @@ int32 AFPSWeapon::GetCurrentAmmo() const
 int32 AFPSWeapon::GetCurrentAmmoInClip() const
 {
 	return CurrentAmmoInClip;
+}
+
+int32 AFPSWeapon::GetCurrentAmmoInBackupClips() const
+{
+	int32 Clips = (float)(CurrentAmmo - CurrentAmmoInClip) / (float)WeaponConfig.AmmoPerClip;
+	return Clips * WeaponConfig.AmmoPerClip;
 }
 
 int32 AFPSWeapon::GetAmmoPerClip() const

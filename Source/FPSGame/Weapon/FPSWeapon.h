@@ -422,6 +422,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = FPSWeapon)
 	int32 GetCurrentAmmoInClip() const;
 
+	//取当前剩余备用弹夹内的全部弹药量（排除 CurrentAmmoInClip）
+	UFUNCTION(BlueprintCallable, Category = FPSWeapon)
+	int32 GetCurrentAmmoInBackupClips() const;
+
 	//取每弹夹的弹药容量
 	int32 GetAmmoPerClip() const;
 
