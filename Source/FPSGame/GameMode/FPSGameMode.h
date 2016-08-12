@@ -36,11 +36,14 @@ public:
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 
-	/** called before startmatch */
+	//游戏准备开始
 	virtual void HandleMatchIsWaitingToStart() override;
 
-	/** starts new match */
+	//游戏已经开始
 	virtual void HandleMatchHasStarted() override;
+
+	//游戏已经结束
+	virtual void HandleMatchHasEnded() override;
 
 	/************************************************************************/
 	/* pickup                                                                     */
@@ -76,8 +79,11 @@ protected:
 
 	FTimerHandle TimerHandle_DefaultTimer;
 	
+	//1. DefaultTimer控制游戏结束
+	//2. CheckMatchEnd控制游戏结束
+	//3. 命令执行控制游戏结束
 	UFUNCTION(exec)
-	void FinishMatch();
+	void FinishMatch(EMatchResult MatchResult);
 
 	bool CheckMatchEnd();
 

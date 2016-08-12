@@ -30,7 +30,7 @@ void AFPSWeaponInstant::OnBurstFinished()
 {
 	Super::OnBurstFinished();
 
-	ResetSpread();
+	//ResetSpread();
 }
 
 void AFPSWeaponInstant::ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread)

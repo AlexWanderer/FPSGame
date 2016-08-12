@@ -75,6 +75,11 @@ void AFPSWeapon::Destroyed()
 	StopSimulatingWeaponFire();
 }
 
+void AFPSWeapon::Tick(float DeltaSeconds)
+{
+	DecreaseSpread(DeltaSeconds * WeaponConfig.SpreadDecreaseSpeed);
+}
+
 FVector AFPSWeapon::GetAdjustedAimDirection() const
 {
 	AFPSPlayerController* const PlayerController = Instigator ? Cast<AFPSPlayerController>(Instigator->Controller) : NULL;
@@ -122,6 +127,11 @@ float AFPSWeapon::GetSpreadMax() const
 void AFPSWeapon::IncreaseSpread()
 {
 	CurrentFiringSpread = FMath::Min(WeaponConfig.FiringSpreadMax, CurrentFiringSpread + WeaponConfig.FiringSpreadIncrement);
+}
+
+void AFPSWeapon::DecreaseSpread(float DecreaseAmmount)
+{
+	CurrentFiringSpread = FMath::Max(0.f, CurrentFiringSpread - DecreaseAmmount);
 }
 
 void AFPSWeapon::ResetSpread()

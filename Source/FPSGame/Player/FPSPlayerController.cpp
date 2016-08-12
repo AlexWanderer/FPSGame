@@ -18,29 +18,11 @@ AFPSPlayerController::AFPSPlayerController():Super()
 void AFPSPlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
 }
 
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-}
-
-void AFPSPlayerController::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
-{
-	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
-
-	// ONLY PUT CODE HERE WHICH YOU DON'T WANT TO BE DONE DUE TO HOST LOSS
-
-	// Do we need to show the end of round scoreboard?
-	if (IsPrimaryPlayer())
-	{
-		AGameHUD* TheHUD = GetGameHUD();
-		if (TheHUD)
-		{
-			TheHUD->ShowScoreboard(true, true);
-		}
-	}
 }
 
 AGameHUD* AFPSPlayerController::GetGameHUD() const
@@ -129,10 +111,9 @@ bool AFPSPlayerController::IsLookInputIgnored() const
 	}
 }
 
-void AFPSPlayerController::ClientGameEnded_Implementation(AActor* EndGameFocus, bool bIsWinner)
+void AFPSPlayerController::GameHasEnded(class AActor* EndGameFocus /* = NULL */, bool bIsWinner /* = false */)
 {
-	Super::ClientGameEnded_Implementation(EndGameFocus, bIsWinner);
-
+	Super::GameHasEnded(EndGameFocus, bIsWinner);
 	// Disable controls now the game has ended
 	SetIgnoreMoveInput(true);
 
@@ -146,13 +127,6 @@ void AFPSPlayerController::ClientGameEnded_Implementation(AActor* EndGameFocus, 
 	{
 		ShooterHUD->SetMatchState(bIsWinner ? EShooterMatchState::Won : EShooterMatchState::Lost);
 	}
-}
-
-void AFPSPlayerController::ClientReset_Implementation()
-{
-	AActor* StartSpot = UGameplayStatics::GetGameMode(GetWorld())->FindPlayerStart(this);
-	UGameplayStatics::GetGameMode(GetWorld())->RestartPlayer(this);
-	//GetCharacter()->TeleportTo(StartSpot->GetActorLocation(), StartSpot->GetActorRotation());
 }
 
 void AFPSPlayerController::FailedToSpawnPawn()

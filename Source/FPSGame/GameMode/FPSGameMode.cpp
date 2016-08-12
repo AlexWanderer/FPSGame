@@ -279,6 +279,7 @@ void AFPSGameMode::DefaultTimer()
 		return;
 	}
 
+	//根据剩余时间决定游戏情况
 	AFPSGameState* const MyGameState = Cast<AFPSGameState>(GameState);
 	if (MyGameState && MyGameState->RemainingTime > 0 && !MyGameState->bTimerPaused)
 	{
@@ -292,19 +293,7 @@ void AFPSGameMode::DefaultTimer()
 			}
 			else if (GetMatchState() == MatchState::InProgress)
 			{
-				FinishMatch();
-
-				// Send end round events
-				for (FConstControllerIterator It = GetWorld()->GetControllerIterator(); It; ++It)
-				{
-					AFPSPlayerController* PlayerController = Cast<AFPSPlayerController>(*It);
-
-					if (PlayerController && MyGameState)
-					{
-						AFPSPlayerState* PlayerState = Cast<AFPSPlayerState>((*It)->PlayerState);
-						const bool bIsWinner = IsWinner(PlayerState);
-					}
-				}
+				FinishMatch(EMatchResult::Timeout);
 			}
 			else if (GetMatchState() == MatchState::WaitingToStart)
 			{
@@ -372,7 +361,7 @@ bool AFPSGameMode::IsSpawnpointPreferred(APlayerStart* SpawnPoint, AController* 
 	return true;
 }
 
-void AFPSGameMode::FinishMatch()
+void AFPSGameMode::FinishMatch(EMatchResult MatchResult)
 {
 	AFPSGameState* const MyGameState = Cast<AFPSGameState>(GameState);
 	if (IsMatchInProgress())
@@ -380,18 +369,25 @@ void AFPSGameMode::FinishMatch()
 		EndMatch();
 		DetermineMatchWinner();
 
-		// notify players
-		for (FConstControllerIterator It = GetWorld()->GetControllerIterator(); It; ++It)
+		APlayerController* TheController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		if (MatchResult == EMatchResult::Win)
 		{
-			AFPSPlayerState* PlayerState = Cast<AFPSPlayerState>((*It)->PlayerState);
-			const bool bIsWinner = IsWinner(PlayerState);
-
-			(*It)->GameHasEnded(NULL, bIsWinner);
+			TheController->GameHasEnded(nullptr, true);
+		}
+		else if (MatchResult == EMatchResult::Lost)
+		{
+			TheController->GameHasEnded(nullptr, false);
+		}
+		else if (MatchResult == EMatchResult::Timeout)
+		{
+			TheController->GameHasEnded(nullptr, false);
+		}
+		else
+		{
+			TheController->GameHasEnded(nullptr, false);
 		}
 
 		// lock all pawns
-		// pawns are not marked as keep for seamless travel, so we will create new pawns on the next match rather than
-		// turning these back on.
 		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
 		{
 			(*It)->TurnOff();
@@ -405,6 +401,9 @@ void AFPSGameMode::FinishMatch()
 bool AFPSGameMode::CheckMatchEnd()
 {
 	bool bHasAlivePlayer = false;
+	bool bHasAliveBot = false;
+
+	//检查是否还有玩家存活
 	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; It++)
 	{
 		AFPSCharacter* MyPawn = Cast<AFPSCharacter>(*It);
@@ -423,16 +422,29 @@ bool AFPSGameMode::CheckMatchEnd()
 		}
 	}
 
-	/* End game is all players died */
-	if (!bHasAlivePlayer)
+	//检查是否还有Bot存活
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; It++)
 	{
-		FinishMatch();
+		AFPSBot* Bot = Cast<AFPSBot>(*It);
+		if (Bot && Bot->IsAlive())
+		{
+			bHasAliveBot = true;
+			break;
+		}
+	}
+
+	if (bHasAlivePlayer && !bHasAliveBot)
+	{
+		FinishMatch(EMatchResult::Win);
 		return true;
 	}
-	else
+	else if (!bHasAlivePlayer)
 	{
-		return false;
+		FinishMatch(EMatchResult::Lost);
+		return true;
 	}
+
+	return false;
 }
 
 void AFPSGameMode::DetermineMatchWinner()
@@ -474,10 +486,15 @@ void AFPSGameMode::HandleMatchIsWaitingToStart()
 
 void AFPSGameMode::HandleMatchHasStarted()
 {
-	bNeedsBotCreation = true;
 	Super::HandleMatchHasStarted();
-
+	bNeedsBotCreation = true;
 	AFPSGameState* const MyGameState = Cast<AFPSGameState>(GameState);
 	MyGameState->RemainingTime = RoundTime;
 	StartBots();
+}
+
+void AFPSGameMode::HandleMatchHasEnded()
+{
+	Super::HandleMatchHasEnded();
+	
 }

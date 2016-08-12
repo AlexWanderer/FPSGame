@@ -65,11 +65,11 @@ void AFPSAIController::BeginInactiveState()
 {
 	Super::BeginInactiveState();
 
-	AGameState* GameState = GetWorld()->GameState;
+	//AGameState* GameState = GetWorld()->GameState;
 
-	const float MinRespawnDelay = (GameState && GameState->GameModeClass) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
+	//const float MinRespawnDelay = (GameState && GameState->GameModeClass) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
 
-	GetWorldTimerManager().SetTimer(TimerHandle_Respawn, this, &AFPSAIController::Respawn, MinRespawnDelay);
+	//GetWorldTimerManager().SetTimer(TimerHandle_Respawn, this, &AFPSAIController::Respawn, MinRespawnDelay);
 
 }
 

@@ -11,6 +11,13 @@ enum class EShooterMatchState
 	Lost,
 }; 
 
+UENUM(BlueprintType)
+enum class EMatchResult
+{
+	Win,
+	Lost,
+	Timeout,
+};
 
 USTRUCT()
 struct FDecalData

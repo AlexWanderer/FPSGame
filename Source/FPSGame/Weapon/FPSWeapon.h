@@ -85,6 +85,9 @@ struct FWeaponData
 	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
 	float FiringSpreadMax;
 
+	UPROPERTY(EditDefaultsOnly, Category = WeaponData)
+	float SpreadDecreaseSpeed;
+
 	FWeaponData()
 	{
 		bInfiniteAmmo = false;
@@ -98,6 +101,7 @@ struct FWeaponData
 		TargetingSpreadMod = 0.25f;
 		FiringSpreadIncrement = 1.0f;
 		FiringSpreadMax = 10.0f;
+		SpreadDecreaseSpeed = 1;
 	}
 };
 
@@ -126,6 +130,8 @@ public:
 
 	virtual void Destroyed() override;
 
+	virtual void Tick(float DeltaSeconds) override;
+
 	/************************************************************************/
 	/* Config                                                            */
 	/************************************************************************/
@@ -150,6 +156,7 @@ public:
 protected:
 
 	void IncreaseSpread();
+	void DecreaseSpread(float DecreaseAmmount);
 
 	void ResetSpread();
 

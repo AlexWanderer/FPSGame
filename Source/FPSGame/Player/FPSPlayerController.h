@@ -19,8 +19,6 @@ class FPSGAME_API AFPSPlayerController : public APlayerController
 
 	virtual void BeginPlay() override;
 
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
-
 	virtual void FailedToSpawnPawn() override;
 
 	virtual void PawnPendingDestroy(APawn* Pawn) override;
@@ -31,9 +29,7 @@ class FPSGAME_API AFPSPlayerController : public APlayerController
 
 	virtual bool IsLookInputIgnored() const override;
 
-	virtual void ClientGameEnded_Implementation(AActor* EndGameFocus, bool bIsWinner) override;
-	
-	virtual void ClientReset_Implementation() override;
+	virtual void GameHasEnded(class AActor* EndGameFocus /* = NULL */, bool bIsWinner /* = false */) override;
 
 	/************************************************************************/
 	/* input							                                     */
